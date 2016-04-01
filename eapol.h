@@ -20,6 +20,8 @@
 #define EAPOL_PACKET	(0x00)
 #define EAPOL_START		(0x01)
 #define EAPOL_LOGOFF	(0x02)
+/* 貌似请求下线的id都是这个 */
+#define EAPOL_LOGOFF_ID	(255)
 
 #define EAP_CODE_REQ	(0x01)
 #define EAP_CODE_RES	(0x02)
@@ -27,6 +29,7 @@
 #define EAP_CODE_FAIL	(0x04)
 #define EAP_TYPE_IDEN	(0x01)
 #define EAP_TYPE_MD5	(0x04)
+
 
 #pragma pack(1)
 /* ethii 帧 */
@@ -100,11 +103,12 @@ int eaplogin(char const *uname, char const *pwd,
 /*
  * eap下线
  */
-int eaplogoff();
+int eaplogoff(void);
 /*
  * eap重新登录
  */
-int eaprefresh();
+int eaprefresh(char const *uname, char const *pwd,
+		int (*sucess_handle)(void const*), void const *args);
 /*
  * 用来设置ifname
  */

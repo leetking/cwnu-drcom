@@ -220,6 +220,17 @@ static int eapol_start(int skfd, struct sockaddr const *skaddr)
 /* 退出登录 */
 static int eapol_logoff(int skfd, struct sockaddr const *skaddr)
 {
+	uchar broadcast_mac[ETH_ALEN] = {
+		0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+	};
+	memcpy(sendethii->dst_mac, broadcast_mac, ETH_ALEN);
+	memcpy(sendethii->src_mac, client_mac, ETH_ALEN);
+	sendethii->type = htons(ETHII_8021X);
+	sendeapol->ver = EAPOL_VER;
+	sendeapol->type = EAPOL_LOGOFF;
+	sendeapol->len = 0x0;
+	sendeap->id = EAPOL_LOGOFF_ID;
+	sendto(skfd, sendbuff, ETH_ALEN*2+6, 0, skaddr, sizeof(struct sockaddr_ll));
 	return 0;
 }
 /* 回应request-identity */
@@ -290,6 +301,8 @@ int eaplogin(char const *uname, char const *pwd,
 	pwdlen = strlen(_pwd);
 	if (0 != eapol_init(&skfd, (struct sockaddr*)&ll))
 		return -1;
+	/* 无论如何先请求一下下线 */
+	eapol_logoff(skfd, (struct sockaddr*)&ll);
 	/* eap-start */
 	printf("[1] Send eap-start...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
@@ -338,6 +351,36 @@ _pwd_err:
 	printf("[ERROR] The server refuse to login. Password error.\n");
 	close(skfd);
 	return 4;
+}
+
+int eaplogoff()
+{
+	int skfd;
+	struct sockaddr_ll ll;
+	int state;
+	int i;
+
+	printf("[0] Initilize interface...\n");
+	if (0 != eapol_init(&skfd, (struct sockaddr*)&ll))
+		return -1;
+	printf("[1] Requset logoff...\n");
+	for (i = 0; i < TRY_TIMES; ++i) {
+		eapol_logoff(skfd, (struct sockaddr*)&ll);
+		state = filte_success(skfd, (struct sockaddr*)&ll);
+		if (-2 == state) {
+			printf("[2] Logoff!\n");
+			return 0;
+		}
+		printf(" [1] %dth Try Requset logoff...\n", i+1);
+	}
+	printf("[ERROR] Not server in range. or You were logoff.\n");
+	return -1;
+}
+
+int eaprefresh(char const *uname, char const *pwd,
+		int (*sucess_handle)(void const*), void const *args)
+{
+	return eaplogin(uname, pwd, sucess_handle, args);
 }
 
 /* 设置ifname */

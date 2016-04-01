@@ -34,11 +34,23 @@ int main(int argc, char **argv)
 	char pwd[PWD_LEN];
 	char ifname[IFNAMSIZ];
 
+	char islogoff = 0;
+
+	if (argc == 2
+			&& (0 == strcmp("-l", argv[1]) || 0 == (strcmp("-L", argv[1]))))
+		islogoff = 1;
+
 	if (0 != getconf(uname, pwd, ifname)) {
 		fprintf(stderr, "Not configure.\n");
 		return 1;
 	}
 	setifname(ifname);
+
+	if (islogoff) {
+		eaplogoff();
+		return 0;
+	}
+
 	switch (eaplogin(uname, pwd, NULL, NULL)) {
 		case 0: printf("Login success!!\n"); break;
 		case 1: fprintf(stderr, "No this user.\n"); break;
@@ -49,7 +61,6 @@ int main(int argc, char **argv)
 		case -2: fprintf(stderr, "Server isn't in range.\n"); break;
 		default: fprintf(stderr, "Other error.\n");
 	}
-
 	return 0;
 }
 

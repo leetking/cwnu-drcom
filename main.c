@@ -36,9 +36,18 @@ int main(int argc, char **argv)
 
 	char islogoff = 0;
 
-	if (argc == 2
-			&& (0 == strcmp("-l", argv[1]) || 0 == (strcmp("-L", argv[1]))))
-		islogoff = 1;
+	if (argc == 2) {
+		if (0 == strcmp("-l", argv[1]) || 0 == (strcmp("-L", argv[1])))
+			islogoff = 1;
+		else if (0 == strcmp("-h", argv[1])) {
+			printf("Usage: %s -r|h|l\n", argv[0]);
+			printf("      -r: relogin.\n");
+			printf("      -l: logoff.\n");
+			printf("      -h: show this help page.\n");
+			printf("NOTE: you must need root to login.\n");
+			return 0;
+		}
+	}
 
 	if (0 != getconf(uname, pwd, ifname)) {
 		fprintf(stderr, "Not configure.\n");

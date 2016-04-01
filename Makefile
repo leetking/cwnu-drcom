@@ -1,7 +1,7 @@
 CC := gcc
 DEBUG_FLAG := -DDEBUG -Wall -g -O0
 RELEASE_FLAG := -Wall -g -O2
-FLAG := $(RELEASE_FLAG)
+FLAG := $(DEBUG_FLAG) -DCONF_PATH=\"./drcomrc\"
 RM := rm -rf
 
 PRONAME := drcom

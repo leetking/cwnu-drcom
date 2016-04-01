@@ -7,8 +7,11 @@
 
 #define IDEN_LEN	UNAME_LEN
 
-#define TRY_TIMES	(14)
-#define TIMEOUT		(7)
+#define TRY_TIMES	(7)
+#define TIMEOUT		(3)
+
+/* 最多16个接口 */
+#define IFS_MAX		(16)
 
 /* ethii层取0x888e表示上层是8021.x */
 #define ETHII_8021X	(0x888e)
@@ -88,6 +91,7 @@ typedef union {
  *          1: 用户不存在
  *          2: 密码错误
  *          3: 其他超时
+ *          4: 服务器拒绝请求登录
  *          -1: 没有找到合适网络接口
  *          -2: 没有找到服务器
  */
@@ -101,4 +105,8 @@ int eaplogoff();
  * eap重新登录
  */
 int eaprefresh();
+/*
+ * 用来设置ifname
+ */
+void setifname(char *ifname);
 #endif

@@ -34,10 +34,12 @@ static int pwdlen;
 /* 比较两个mac是否相等 */
 static int mac_equal(uchar *mac1, uchar *mac2)
 {
-	int i;
-	for (i = 0; i < ETH_ALEN; ++i)
-		if (mac1[i] != mac2[i])
-			return 0;
+	uint32 a1 = *(uint32*)mac1;
+	uint32 a2 = *(uint32*)mac2;
+	uint32 b1 = *(uint32*)(mac1+4);
+	uint32 b2 = *(uint32*)(mac2+4);
+	if (a1 == a2 && b1 == b2)
+		return 0;
 
 	return 1;
 }
@@ -110,8 +112,8 @@ addr_err:
  */
 static int filte_req_identity(int skfd, struct sockaddr const *skaddr)
 {
-	clock_t stime = clock();
-	for (; (float)(clock()-stime)/CLOCKS_PER_SEC <= TIMEOUT; ) {
+	int stime = time((time_t*)NULL);
+	for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
 		/* TODO 看下能不能只接受某类包，包过滤 */
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
 		/* eap包且是request */
@@ -133,8 +135,8 @@ static int filte_req_identity(int skfd, struct sockaddr const *skaddr)
  */
 static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
 {
-	clock_t stime = clock();
-	for (; (float)(clock()-stime)/CLOCKS_PER_SEC <= TIMEOUT; ) {
+	int stime = time((time_t*)NULL);
+	for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
 		/* 是request且是eap-request-md5clg */
 		if (recvethii->type == htons(ETHII_8021X)
@@ -174,8 +176,8 @@ static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
  */
 static int filte_success(int skfd, struct sockaddr const *skaddr)
 {
-	clock_t stime = clock();
-	for (; (float)(clock()-stime)/CLOCKS_PER_SEC <= TIMEOUT; ) {
+	int stime = time((time_t*)NULL);
+	for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
 		if (recvethii->type == htons(ETHII_8021X)
 				&& mac_equal(recvethii->dst_mac, client_mac)
@@ -197,7 +199,6 @@ static int filte_success(int skfd, struct sockaddr const *skaddr)
 	}
 	return -1;
 }
-/* NOTE ethii的crc校验暂时不写，也可以工作 */
 /*
  * 广播发送eapol-start
  */
@@ -213,7 +214,7 @@ static int eapol_start(int skfd, struct sockaddr const *skaddr)
 	sendeapol->ver = EAPOL_VER;
 	sendeapol->type = EAPOL_START;
 	sendeapol->len = 0x0;
-	sendto(skfd, sendbuff, BUFF_LEN, 0, skaddr, sizeof(struct sockaddr_ll));
+	sendto(skfd, sendbuff, ETH_ALEN*2+6, 0, skaddr, sizeof(struct sockaddr_ll));
 	return 0;
 }
 /* 退出登录 */
@@ -232,7 +233,8 @@ static int eap_res_identity(int skfd, struct sockaddr const *skaddr)
 	sendeap->len = htons(sizeof(eapbody_t));
 	sendeap->type = EAP_TYPE_IDEN;
 	strncpy((char*)sendeapbody->identity, _uname, UNAME_LEN);
-	sendto(skfd, sendbuff, BUFF_LEN, 0, skaddr, sizeof(struct sockaddr_ll));
+	sendto(skfd, sendbuff, ETH_ALEN*2+6+5+sizeof(eapbody_t),
+			0, skaddr, sizeof(struct sockaddr_ll));
 	return 0;
 }
 /* 回应md5clg */
@@ -248,7 +250,8 @@ static int eap_md5_clg(int skfd, struct sockaddr const *skaddr)
 	memcpy(md5buff+1+pwdlen, recveapbody->md5value, recveapbody->md5size);
 	MD5(md5buff, 1+pwdlen+recveapbody->md5size, sendeapbody->md5value);
 	memcpy((char*)sendeapbody->md5exdata, _uname, strlen(_uname));
-	sendto(skfd, sendbuff, BUFF_LEN, 0, skaddr, sizeof(struct sockaddr_ll));
+	sendto(skfd, sendbuff, ETH_ALEN*2+6+5+sizeof(eapbody_t),
+			0, skaddr, sizeof(struct sockaddr_ll));
 	return 0;
 }
 /* 保持在线 */
@@ -335,4 +338,10 @@ _pwd_err:
 	printf("[ERROR] The server refuse to login. Password error.\n");
 	close(skfd);
 	return 4;
+}
+
+/* 设置ifname */
+void setifname(char *_ifname)
+{
+	strncpy(ifname, _ifname, IFNAMSIZ);
 }

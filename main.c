@@ -1,7 +1,10 @@
 #include "eapol.h"
 
-#include <net/if.h>
-#include <unistd.h>
+#ifndef _WINDOWS
+# include <net/if.h>
+#else
+# define IFNAMSIZ	(512)
+#endif
 
 #include <stdio.h>
 #include <string.h>

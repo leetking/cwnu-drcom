@@ -3,7 +3,11 @@
 
 #include "type.h"
 
-#include <netinet/if_ether.h>
+#ifndef _WINDOWS
+# include <netinet/if_ether.h>
+#else
+# define ETH_ALEN	(6)
+#endif
 
 #define IDEN_LEN	UNAME_LEN
 

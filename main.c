@@ -114,7 +114,7 @@ static int getvalue(FILE *conf, char const *key, char *value)
 		while ('\0' != *pb && ('_' == *pb || isalnum(*pb))) {
 			if (pkey >= keybuff+RECORD_LEN)
 				return -3;
-			*pkey++ = tolower(*pb++);
+			*pkey++ = *pb++;
 		}
 		*pkey = '\0';
 		/* 等号 */
@@ -132,7 +132,7 @@ static int getvalue(FILE *conf, char const *key, char *value)
 		while ('\0' != *pb && '"' != *pb) {
 			if (pval >= value+RECORD_LEN)
 				return -3;
-			*pval++ = tolower(*pb++);
+			*pval++ = *pb++;
 		}
 		*pval = '\0';
 		if (0 == strcmp(key, keybuff)) {

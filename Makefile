@@ -1,20 +1,22 @@
 HOST_CC := gcc
 MIPS_CC := mips-linux-gcc	#针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
 CC := $(HOST_CC)
-WIN_FLAG := -lws2_32 -D_WINDOWS
+WIN_FLAG := -I wpcap/include -lws2_32 -L wpcap/lib -lwpcap -lpacket -D_WINDOWS -DHAVE_REMOTE
 DEBUG_FLAG := -DDEBUG -Wall -g -O0
 RELEASE_FLAG := -Wall -O2
-FLAG := $(DEBUG_FLAG) -DCONF_PATH=\"./drcomrc\"
+FLAG := $(DEBUG_FLAG) -DCONF_PATH=\"./drcomrc\" $(WIN_FLAG)
 RM := rm -rf
 
 PRONAME := drcom
 
-OBJS := main.o md5.o eapol.o
+_OBJS := main.o md5.o eapol.o
+OBJS_WIN := main.o md5.o eapol_win.o
+OBJS := $(OBJS_WIN)
 
 $(PRONAME): $(OBJS)
 	$(CC) -o $@ $^ $(FLAG)
 %.o: %.c
 	$(CC) -c $^ $(FLAG)
 clean:
-	$(RM) $(OBJS) $(PRONAME)
+	$(RM) $(OBJS) $(PRONAME) $(OBJS_WIN)
 

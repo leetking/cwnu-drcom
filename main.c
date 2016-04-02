@@ -3,14 +3,14 @@
 #ifndef _WINDOWS
 # include <net/if.h>
 #else
-# define IFNAMSIZ	(512)
+# define IFNAMSIZ	(64)
 #endif
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-#define RECORD_LEN	(16)
+#define RECORD_LEN	(64)
 #define READ_BUFF	(82)
 
 /*
@@ -57,7 +57,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	setifname(ifname);
-
 	if (islogoff) {
 		eaplogoff();
 		return 0;

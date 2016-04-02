@@ -7,7 +7,7 @@ typedef unsigned int uint32;	/* 四个字节 */
 
 /* 填充长度和各种缓冲区长度 */
 #define STUFF_LEN	(64)
-#define BUFF_LEN	(256)
+#define BUFF_LEN	(1024)
 
 /* 用户名和密码长度 */
 #define UNAME_LEN	(32)

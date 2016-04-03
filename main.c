@@ -3,15 +3,15 @@
 #ifndef _WINDOWS
 # include <net/if.h>
 #else
-# define IFNAMSIZ	(64)
+# define IFNAMSIZ	(128)
 #endif
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-#define RECORD_LEN	(64)
-#define READ_BUFF	(82)
+#define RECORD_LEN	(128)
+#define READ_BUFF	(256)
 
 /*
  * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
@@ -93,6 +93,7 @@ static int getconf(char *uname, char *pwd, char *ifname)
 	printf("pwd: %s\n", pwd);
 	printf("ifname: %s\n", ifname);
 #endif
+	fclose(conf);
 
 	return 0;
 }
@@ -144,6 +145,6 @@ static int getvalue(FILE *conf, char const *key, char *value)
 			return 0;
 		}
 	}
-	fclose(conf);
+
 	return -2;
 }

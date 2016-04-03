@@ -11,7 +11,7 @@
 #include <ctype.h>
 
 #define RECORD_LEN	(64)
-#define READ_BUFF	(82)
+#define READ_BUFF	(128)
 
 /*
  * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
@@ -33,8 +33,8 @@ static int getvalue(FILE *conf, char const *key, char *value);
 
 int main(int argc, char **argv)
 {
-	char uname[UNAME_LEN];
-	char pwd[PWD_LEN];
+	char uname[RECORD_LEN];
+	char pwd[RECORD_LEN];
 	char ifname[IFNAMSIZ];
 
 	char islogoff = 0;
@@ -51,7 +51,6 @@ int main(int argc, char **argv)
 			return 0;
 		}
 	}
-
 	if (0 != getconf(uname, pwd, ifname)) {
 		fprintf(stderr, "Not configure.\n");
 		return 1;
@@ -93,6 +92,7 @@ static int getconf(char *uname, char *pwd, char *ifname)
 	printf("pwd: %s\n", pwd);
 	printf("ifname: %s\n", ifname);
 #endif
+	fclose(conf);
 
 	return 0;
 }
@@ -144,6 +144,5 @@ static int getvalue(FILE *conf, char const *key, char *value)
 			return 0;
 		}
 	}
-	fclose(conf);
 	return -2;
 }

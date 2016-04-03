@@ -35,12 +35,13 @@ static char _uname[UNAME_LEN];
 static char _pwd[PWD_LEN];
 static int pwdlen;
 
-/*
+#if 0
+/* 在ws2_32.dll里实现了 */
 static u_short htons(u_short num)
 {
 	return (((num&0xff)<<8)|(num&0xff00)>>8);
 }
-*/
+#endif
 
 /* 比较两个mac是否相等 */
 static int mac_equal(uchar *mac1, uchar *mac2)
@@ -109,7 +110,7 @@ static int eapol_init(pcap_t **skfd)
 	/* 获取网络接口句柄 */
 	strncat(ifbuff, ifname, IFNAMSIZ);
 	if (NULL == (*skfd = pcap_open(d->name, MTU_MAX,
-					PCAP_OPENFLAG_PROMISCUOUS, TIMEOUT, NULL, errbuf))) {
+					PCAP_OPENFLAG_PROMISCUOUS, TIMEOUT*1000, NULL, errbuf))) {
 		fprintf(stderr, "Get interface handler:%s\n", errbuf);
 		pcap_freealldevs(alldevs);
 		return -1;

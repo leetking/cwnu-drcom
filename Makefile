@@ -18,5 +18,8 @@ $(PRONAME): $(OBJS)
 %.o: %.c
 	$(CC) -c $^ $(FLAG)
 clean:
-	$(RM) $(OBJS) $(PRONAME) $(OBJS_WIN)
-
+	$(RM) *.o $(PRONAME) $(OBJS_WIN) win_config win_config.exe
+win_config: win_config.o
+	$(CC) -o $@ $^ $(FLAG)
+%.o: %.c
+	$(CC) -c $^ $(FLAG)

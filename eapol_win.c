@@ -10,11 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef _WINDOWS
-# define IFNAMSIZ	(64)
-# define MTU_MAX	(65536)
-#endif
-
 static uchar client_mac[ETH_ALEN];
 
 static uchar sendbuff[BUFF_LEN];

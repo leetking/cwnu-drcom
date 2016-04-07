@@ -10,9 +10,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#define RECORD_LEN	(128)
-#define READ_BUFF	(256)
-
 /*
  * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
  * @return: 0: 成功

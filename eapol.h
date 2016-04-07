@@ -3,10 +3,13 @@
 
 #include "type.h"
 
-#ifndef _WINDOWS
-# include <netinet/if_ether.h>
-#else
+#ifdef _WINDOWS
 # define ETH_ALEN	(6)
+# define IFNAMSIZ	(64)
+# define MTU_MAX	(65536)
+#else
+# include <netinet/if_ether.h>
+# include <net/if.h>
 #endif
 
 #define IDEN_LEN	UNAME_LEN

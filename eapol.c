@@ -16,6 +16,8 @@
 #include <string.h>
 #include <time.h>
 
+#define BUFF_LEN	(1024)
+
 static uchar client_mac[ETH_ALEN];
 
 static uchar sendbuff[BUFF_LEN];

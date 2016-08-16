@@ -4,8 +4,11 @@
 #include <pcap.h>
 #include <packet32.h>		/* 需要连接-lpacket */
 
-//#include <conio.h>
-#include <ddk/ntddndis.h>	/* 用于获取mac */
+#ifdef _MINGW64
+# include <ddk/ntddndis.h>	/* 用于获取mac */
+#else
+# include <ntddndis.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>

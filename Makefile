@@ -3,54 +3,65 @@ CC := gcc
 RM := rm -rf
 
 #编译选项在这里修改
-#编译环境在msys里, TARGET只可以取WIN, LINUX几个选项
-TARGET := WIN
-#是就取DEBUG，否则就是空
+#TARGET只可以取WIN, LINUX几个选项
+TARGET := LINUX
+#如果是, 就取DEBUG，否则就是空
 IS_DEBUG := DEBUG
-#是就取GUI，否则就是空
-IS_GUI :=
+#如果是, 就取GUI，否则就是空
+IS_GUI := 
 
-CFLAG_WIN := -I wpcap/include -D_WINDOWS -DHAVE_REMOTE
-LIBS_WIN := -lws2_32 -L wpcap/lib -lwpcap -lpacket
-CFLAG_GUI := `pkg-config --flags gtk+-2.0`
-LIBS_GUI := `pkg-config --libs gkt+-2.0`
-DEBUG_CFLAG := -DDEBUG -Wall -g -O0
-RELEASE_CFLAG := -O2
+CONFIG   := \"./drcomrc\"
+RESOURCE := resource
+ICON_PATH		:= \"$(RESOURCE)/icon.png\"
 
-OBJS := md5.o
-CFLAG := -DCONF_PATH=\"./drcomrc\"
-LIBS :=
+CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
+LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
+CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH)
+LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
+CFLAGS_DEBUG	:= -DDEBUG -Wall -g -O0
+CFLAGS_RELEASE	:= -O2
+
+OBJS	:= md5.o config.o
+CFLAGS	:= -DCONF_PATH=$(CONFIG)
+LDFLAGS	:=
 
 ifeq ($(TARGET), WIN)
-	CFLAG += $(CFLAG_WIN)
-	LIBS += $(LIBS_WIN)
+	CFLAGS += $(CFLAGS_WIN)
+	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
+ifeq "$(IS_GUI)" ""
+	CONFIG_WIN := config_win
+endif
 else
 	OBJS += eapol.o
 endif
 ifeq ($(IS_DEBUG), DEBUG)
-	CFLAG += $(DEBUG_CFLAG)
+	CFLAGS += $(CFLAGS_DEBUG)
 else
-	CFLAG += $(RELEASE_CFLAG)
+	CFLAGS += $(CFLAGS_RELEASE)
 endif
 ifeq ($(IS_GUI), GUI)
-	CFLAG += $(CFLAG_GUI)
-	LIBS += $(LIBS_GUI)
+	CFLAGS += $(CFLAGS_GUI)
+	LDFLAGS += $(LDFLAGSS_GUI)
 	OBJS += main_gui.o gui.o
 else
-	OBJS += main.o
+	OBJS += main_cli.o
 endif
 
-PRONAME := drcom
+all: drcom $(CONFIG_WIN)
 
-$(PRONAME): $(OBJS)
-	$(CC) -o $@ $^ $(LIBS)
+drcom: $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 %.o: %.c
-	$(CC) -c $^ $(CFLAG)
+	$(CC) -c $^ $(CFLAGS)
 
-config_win: config_win.o
-	$(CC) -o $@ $^ $(LIBS)
+config_netif: config_netif.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 %.o: %.c
-	$(CC) -c $^ $(CFLAG)
+	$(CC) -c $^ $(CFLAGS)
+
+zip:
+
 clean:
-	$(RM) *.o $(PRONAME) $(OBJS_WIN) config_win.exe config_win
+	$(RM) *.o config_netif.exe config_netif drcom
+.PHONY: clean all zip

@@ -1,4 +1,4 @@
-# fuck-drcom
+# cwnu-drcom
 针对西华师范大学做的一个校园网登录客户端，首要目标是为linux用户提供便利。
 
 目前发现，我们学校好像只需要认证eap而且不需要心跳包就可以了。
@@ -34,3 +34,9 @@
  ```bash
  ./drcom -h
  ```
+## 下载
+见上方[^](https://github.com/leetking/cwnu-drcom/releases)的`release`页面
+
+## 自己编译？
+想自定义或自己编译？
+详情请右转[->](https://github.com/leetking/wiki)见`wiki`页面的[如何编译](https://github.com/leetking/wiki/HOW-TO-BUILD)

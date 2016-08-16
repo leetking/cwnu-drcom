@@ -3,7 +3,7 @@
 
 #include "type.h"
 
-#ifdef _WINDOWS
+#ifdef WINDOWS
 # define ETH_ALEN	(6)
 # define IFNAMSIZ	(64)
 # define MTU_MAX	(65536)
@@ -76,6 +76,7 @@ typedef struct {
 }eap_t;
 /* 报文体 */
 #define MD5_SIZE	16
+#define STUFF_LEN	(64)
 typedef union {
 	uchar identity[IDEN_LEN];
 	struct {
@@ -95,7 +96,7 @@ typedef union {
  * pwd: 密码
  * sucess_handle: 认证成功之后调用下一步认证
  * args: sucess_handle需要的参数
- * 如果不需要继续认证，sucess_handle为NULL
+ * 如果不需要继续认证，sucess_handle为NULL，那么接着的args会被忽略
  * 如果sucess_handle不需要参数，args为NULL
  * @return: 0: 成功
  *          1: 用户不存在

@@ -39,4 +39,4 @@
 
 ## 自己编译？
 想自定义或自己编译？
-详情请右转[->](https://github.com/leetking/wiki)见`wiki`页面的[如何编译](https://github.com/leetking/wiki/HOW-TO-BUILD)
+详情请右转[->](https://github.com/leetking/cwnu-drcom/wiki)见`wiki`页面的[如何编译](https://github.com/leetking/cwnu-drcom/wiki/HOW-TO-BUILD)

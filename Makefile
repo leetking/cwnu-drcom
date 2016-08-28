@@ -30,7 +30,7 @@ ifeq ($(TARGET), WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
 ifeq "$(IS_GUI)" ""
-	CONFIG_WIN := config_win
+	CONFIG_WIN := config_netif
 endif
 else
 	OBJS += eapol.o

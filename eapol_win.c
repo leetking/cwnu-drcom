@@ -1,5 +1,6 @@
 #include "type.h"
 #include "eapol.h"
+#include "md5.h"
 
 #include <pcap.h>
 #include <packet32.h>		/* 需要连接-lpacket */
@@ -12,6 +13,8 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#define BUFF_LEN	(1024)
 
 static uchar client_mac[ETH_ALEN];
 
@@ -32,14 +35,6 @@ static eapbody_t *sendeapbody, *recveapbody;
 static char _uname[UNAME_LEN];
 static char _pwd[PWD_LEN];
 static int pwdlen;
-
-#if 0
-/* 在ws2_32.dll里实现了 */
-static u_short htons(u_short num)
-{
-	return (((num&0xff)<<8)|(num&0xff00)>>8);
-}
-#endif
 
 /* 比较两个mac是否相等 */
 static int mac_equal(uchar *mac1, uchar *mac2)

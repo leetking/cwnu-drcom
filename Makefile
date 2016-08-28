@@ -8,7 +8,7 @@ TARGET := LINUX
 #如果是, 就取DEBUG，否则就是空
 IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
-IS_GUI := 
+IS_GUI := GUI
 
 CONFIG   := \"./drcomrc\"
 RESOURCE := resource

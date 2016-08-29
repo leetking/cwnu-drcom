@@ -1,5 +1,5 @@
 #include "eapol.h"
-#include "type.h"
+#include "common.h"
 #include "gui.h"
 #include "config.h"
 
@@ -12,22 +12,18 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#ifdef WINDOWS
+# include <pcap.h>
+#endif
+
 #define DRCOM_TITLE "drcom(黑)"
 
-static char const *opts_text[] = {
-	"选项", "选择网卡", "打开首页", "打开日志",
-	"修改密码", "退出程序",
-};
-static char const *help_text[] = {
-	"帮助", "使用说明",
-};
-static char const *about_text[] = {
-	"关于", "版本说明", "作者",
-};
+#define MENU_TEXT_MAX   (48)
+
+#define NONULL  ((void*)1)
 
 /* 一些其他辅助函数 */
 static int getall_ifs(char (*ifnames)[IFNAMSIZ], int *cnt);
-static char *get_ifname_from_buff(char *buff);
 static GdkPixbuf *create_pixbuf(gchar const *icon);
 static void set_icon(GtkWindow *win, gchar const *icon);
 static void add_to_linearstore(GtkWidget *list, const char *str);
@@ -71,7 +67,7 @@ static GtkWidget *rember_pwd;
 static GtkWidget *ai_login;
 static GtkWidget *pwd_ent;
 
-static void drcom_add_menuber(GtkContainer *container);
+static GtkWidget* drcom_menubar_new(void);
 
 /* 初始化主界面win */
 int drcom_gui_init(GtkWindow *win)
@@ -88,8 +84,7 @@ int drcom_gui_init(GtkWindow *win)
 	gtk_container_add(GTK_CONTAINER(win), box);
 
 	/* 上： 添加菜单栏 */
-	drcom_add_menuber(GTK_CONTAINER(box));
-
+    gtk_box_pack_start(GTK_BOX(box), drcom_menubar_new(), FALSE, FALSE, 0);
 	/* 中： 主要部分 */
 	GtkWidget *box_main = gtk_vbox_new(FALSE, 5);
 	gtk_box_pack_start(GTK_BOX(box), box_main, TRUE, TRUE, 0);
@@ -186,7 +181,7 @@ static void choose_if_cbk(GtkWidget *widget, gpointer father)
 	/* 根据网卡情况来填写这个对话框 */
 	char ifnames[IFS_MAX][IFNAMSIZ];
 	int i;
-	int cnt;
+	int cnt = IFS_MAX;
 	if (0 != getall_ifs(ifnames, &cnt)) {
 		fprintf(stderr, "Get interfaces error\n");
 		gtk_widget_destroy(dialog);
@@ -214,42 +209,40 @@ static void login_cbk(GtkWidget *widget, gpointer status_bar)
 	//(char*)gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(unames_cmb)->entry)),
 	//RECORD_LEN);
 	strncpy(pwd, (char*)gtk_entry_get_text(GTK_ENTRY(pwd_ent)), RECORD_LEN);
-#ifdef DEBUG
-	g_print("uname: %s\n", uname);
-	g_print("pwd: %s\n", pwd);
-#endif
+	_D("uname: %s\n", uname);
+	_D("pwd: %s\n", pwd);
 	stat = eaplogin(uname, pwd, NULL, NULL);
 	switch (stat) {
 	case 0:
-		g_print("Login success!!\n");
+		_M("Login success!!\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "登录成功!!");
 		break;
 	case 1:
-		fprintf(stderr, "No this user.\n");
+		_M("No this user.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "没有这个用户!!");
 		break;
 	case 2:
-		fprintf(stderr, "Password error.\n");
+		_M("Password error.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "密码错误!!");
 		break;
 	case 3:
-		fprintf(stderr, "Timeout.\n");
+		_M("Timeout.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "登录超时，检查网卡!!");
 		break;
 	case 4:
-		fprintf(stderr, "Server refuse to login.\n");
+		_M("Server refuse to login.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "服务器拒绝登录!!");
 		break;
 	case -1:
-		fprintf(stderr, "This ethernet can't be used.\n");
+		_M("This ethernet can't be used.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "网卡不能使用!!");
 		break;
 	case -2:
-		fprintf(stderr, "Server isn't in range.\n");
+		_M("Server isn't in range.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "没在服务器服务范围!!");
 		break;
 	default:
-		fprintf(stderr, "Other error.\n");
+		_M("Other error.\n");
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "未知错误!!");
 	}
 }
@@ -261,163 +254,201 @@ static void logoff_cbk(GtkWidget *widget, gpointer status_bar)
 		gtk_statusbar_push(GTK_STATUSBAR(status_bar), ++msg, "你没有登录!!");
 }
 
-/* @return: 0成功， -1 失败 */
+#ifndef WINDOWS
+static char *get_ifname_from_buff(char *buff)
+{
+    char *s;
+    while (isspace(*buff))
+        ++buff;
+    s = buff;
+    while (':' != *buff && '\0' != *buff)
+        ++buff;
+    *buff = '\0';
+    return s;
+}
+#endif
+/*
+ * 获取所有网络接口
+ * ifnames 实际获取的接口名字
+ * cnt     两个作用，1：传入表示ifnames最多可以存储的接口个数
+ *                   2：返回表示实际获取了的接口个数
+ * 返回接口个数在cnt里
+ * @return: >=0  成功，实际获取的接口个数
+ *          -1 获取失败
+ *          -2 cnt过小
+ */
 static int getall_ifs(char (*ifnames)[IFNAMSIZ], int *cnt)
 {
-#ifndef _WINDOWS
+    char const *filter[] = {
+        "lo", "docker",
+    };
+#ifdef WINDOWS
+    return -1;
+#else   /* linux (unix osx?) */
 #define _PATH_PROCNET_DEV "/proc/net/dev"
-	int i = 0;
+    int i = 0;
 #define BUFF_LINE_MAX	(1024)
-	char buff[BUFF_LINE_MAX];
-	FILE *fd = fopen(_PATH_PROCNET_DEV, "r");
-	char *name;
-	if (NULL == fd) {
-		perror("fopen");
-		return -1;
-	}
-	/* _PATH_PROCNET_DEV文件格式如下,...表示后面我们不关心
-	 * Inter-|   Receive ...
-	 * face |bytes    packets ...
-	 * eth0: 147125283  119599 ...
-	 * wlan0:  229230    2635   ...
-	 * lo: 10285509   38254  ...
-	 */
-	/* 略过开始两行 */
-	fgets(buff, BUFF_LINE_MAX, fd);
-	fgets(buff, BUFF_LINE_MAX, fd);
-	while (0 < fgets(buff, BUFF_LINE_MAX, fd)) {
-		name = get_ifname_from_buff(buff);
-#ifdef DEBUG
-		g_print("%s\n", name);
-#endif
-		if (!strncmp("lo", name, IFNAMSIZ)
-				|| !strncmp("docker0", name, IFNAMSIZ))
-			continue;
-		strncpy(ifnames[i], name, IFNAMSIZ);
-		++i;
-	}
-	*cnt = i;
-	fclose(fd);
-	return 0;
-#else
+    char buff[BUFF_LINE_MAX];
+    FILE *fd = fopen(_PATH_PROCNET_DEV, "r");
+    char *name;
+    if (NULL == fd) {
+        perror("fopen");
+        return -1;
+    }
+    /* _PATH_PROCNET_DEV文件格式如下,...表示后面我们不关心
+     * Inter-|   Receive ...
+     * face |bytes    packets ...
+     * eth0: 147125283  119599 ...
+     * wlan0:  229230    2635   ...
+     * lo: 10285509   38254  ...
+     */
+    /* 略过开始两行 */
+    fgets(buff, BUFF_LINE_MAX, fd);
+    fgets(buff, BUFF_LINE_MAX, fd);
+    while (0 < fgets(buff, BUFF_LINE_MAX, fd)) {
+        name = get_ifname_from_buff(buff);
+        _D("%s\n", name);
+        int j;
+        /* 过滤无关网络接口 */
+        for (j = 0; j < ARRAY_SIZE(filter); ++j) {
+            if (!strncmp(filter[j], IFNAMSIZ))
+                continue;
+        }
+        strncpy(ifnames[i], name, IFNAMSIZ);
+        ++i;
+        if (i >= *cnt) {
+            close(fd);
+            return -2;
+        }
+    }
+    *cnt = i;
+    fclose(fd);
+    return i;
 #endif
 }
 
-static char *get_ifname_from_buff(char *buff)
-{
-	char *s;
-	while (isspace(*buff))
-		++buff;
-	s = buff;
-	while (':' != *buff && '\0' != *buff)
-		++buff;
-	*buff = '\0';
-	return s;
-}
 
 /* 把png图片转换为pixbuf数据 */
 static GdkPixbuf *create_pixbuf(gchar const *icon)
 {
-	GError *err = NULL;
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(icon, &err);
-	if (NULL == pixbuf) {
-		fprintf(stderr, "%s\n", err->message);
-		g_error_free(err);
-	}
+    GError *err = NULL;
+    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(icon, &err);
+    if (NULL == pixbuf) {
+        fprintf(stderr, "%s\n", err->message);
+        g_error_free(err);
+    }
 
-	return pixbuf;
+    return pixbuf;
 }
 
 /* 对win设置图标 */
 static void set_icon(GtkWindow *win, gchar const *icon)
 {
-	gtk_window_set_icon(win, create_pixbuf(icon));
+    gtk_window_set_icon(win, create_pixbuf(icon));
 }
 
 static void add_to_linearstore(GtkWidget *list, const char *str)
 {
-	GtkListStore *store;
-	GtkTreeIter iter;
+    GtkListStore *store;
+    GtkTreeIter iter;
 
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));
-	gtk_list_store_append(store, &iter);
-	gtk_list_store_set(store, &iter, 0, str, -1);
+    store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(list)));
+    gtk_list_store_append(store, &iter);
+    gtk_list_store_set(store, &iter, 0, str, -1);
 }
 
 static void init_list(GtkWidget *list)
 {
-	GtkCellRenderer *renderer;
-	GtkTreeViewColumn *column;
-	GtkListStore *store;
+    GtkCellRenderer *renderer;
+    GtkTreeViewColumn *column;
+    GtkListStore *store;
 
-	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("List Iterms",
-			renderer, "text", 0, NULL);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
-	store = gtk_list_store_new(1, G_TYPE_STRING);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
-	g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("List Iterms",
+            renderer, "text", 0, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
+    store = gtk_list_store_new(1, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(list), GTK_TREE_MODEL(store));
+    g_object_unref(store);
 }
 
 static void _set_ifname(GtkTreeSelection *selection)
 {
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	char *value;
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    char *value;
 
-	if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(selection),
-				&model, &iter)) {
-		gtk_tree_model_get(model, &iter, 0, &value, -1);
-#ifdef DEBUG
-		g_print("_set_ifname: %s\n", value);
-#endif
-		setifname(value);
-		is_choosed_if = TRUE;
-		g_free(value);
-	}
+    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(selection),
+                &model, &iter)) {
+        gtk_tree_model_get(model, &iter, 0, &value, -1);
+        _D("_set_ifname: %s\n", value);
+        setifname(value);
+        is_choosed_if = TRUE;
+        g_free(value);
+    }
 }
 
-static void drcom_add_menuber(GtkContainer *container)
+typedef void (*cbkfun_t)(GtkWidget *w, gpointer father);
+typedef struct {
+    void *icon;         /* TODO has icon? */
+	char text[MENU_TEXT_MAX]; /* text name */
+    GtkWidget *item;
+	cbkfun_t action;    /* 对应回调函数 */
+    GtkWidget *submenu; /* 子菜单, NULL: 没有, NONULL: 有子菜单 */
+    gboolean visual;    /* 是否可操作 */
+    gboolean clicked;   /* 是否选中 */
+}menu_item_t;
+#define SEP_LINE "---"    /* --- 表示分割栏 */
+/* itmes 是 menu_opt_t 类型的 */
+#define INIT_MENU_ITEMS(items)   \
+    do { \
+        for (int i = 0; i < ARRAY_SIZE(items); ++i) { \
+            if (!strncmp(SEP_LINE, items[i].text, ARRAY_SIZE(SEP_LINE)-1)) { \
+                items[i].item = gtk_separator_menu_item_new(); \
+            } else { \
+                items[i].item = gtk_menu_item_new_with_label(items[i].text); \
+                if (NULL != items[i].submenu) { \
+                    items[i].submenu = gtk_menu_new(); \
+                    gtk_menu_item_set_submenu(GTK_MENU_ITEM(items[i].item), items[i].submenu); \
+                } \
+                if (NULL != items[i].action) { \
+                    g_signal_connect(G_OBJECT(items[i].item), "activate", \
+                            G_CALLBACK(items[i].action), NULL); \
+                } \
+            } \
+        } \
+    } while(0)
+/* menu_shell 是menubar或submenu */
+#define APPEND_ITEMS(menu_shell, items) \
+    do { \
+        for (int i = 0; i < ARRAY_SIZE(items); ++i) { \
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu_shell), items[i].item); \
+        } \
+    } while(0)
+static GtkWidget* drcom_menubar_new(void)
 {
-	GtkWidget *opts[ARRAY_SIZE(opts_text)];
-	GtkWidget *helps[ARRAY_SIZE(help_text)];
-	GtkWidget *abouts[ARRAY_SIZE(about_text)];
+    menu_item_t menus[] = {
+        {NULL, "选项", NONULL, NULL, NONULL, TRUE, FALSE},
+        {NULL, "帮助", NONULL, NULL, NONULL, TRUE, FALSE},
+    };
+    menu_item_t opts[] = {
+        {NULL, "打开首页", NONULL, NULL, NULL, TRUE, FALSE},
+        {NULL, "打开日志", NONULL, NULL, NULL, TRUE, FALSE},
+        {NULL, "修改密码", NONULL, NULL, NULL, TRUE, FALSE},
+        {NULL, SEP_LINE,   NONULL, NULL, NULL, TRUE, FALSE},
+        {NULL, "退出程序", NONULL, (cbkfun_t)gtk_main_quit, NULL, TRUE, FALSE},
+    };
+    menu_item_t helps[] = {
+        {NULL, "使用说明", NONULL, NULL, NULL, TRUE, FALSE},
+        {NULL, "关于",     NONULL, NULL, NULL, TRUE, FALSE},
+    };
 
-	GtkWidget *menubar = gtk_menu_bar_new();
-	gtk_box_pack_start(GTK_BOX(container), menubar, FALSE, FALSE, 0);
-	GtkWidget *optmenu = gtk_menu_new();	/* "选项" */
-	GtkWidget *sep = gtk_separator_menu_item_new();
-	int i;
-	for (i = 0; i < ARRAY_SIZE(opts_text); ++i)
-		opts[i] = gtk_menu_item_new_with_label(opts_text[i]);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(opts[0]), optmenu);
-	for (i = 1; i < ARRAY_SIZE(opts); ++i) {
-		gtk_menu_shell_append(GTK_MENU_SHELL(optmenu), opts[i]);
-		if (i == ARRAY_SIZE(opts_text)-2)
-			gtk_menu_shell_append(GTK_MENU_SHELL(optmenu), sep);
-	}
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), opts[0]);
-	GtkWidget *helpmenu = gtk_menu_new();	/* "帮助" */
-	for (i =0; i < ARRAY_SIZE(help_text); ++i)
-		helps[i] = gtk_menu_item_new_with_label(help_text[i]);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(helps[0]), helpmenu);
-	for (i = 1; i < ARRAY_SIZE(helps); ++i)
-		gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu), helps[i]);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), helps[0]);
-	GtkWidget *aboutmenu = gtk_menu_new();	/* "关于" */
-	for (i = 0; i < ARRAY_SIZE(about_text); ++i)
-		abouts[i] = gtk_menu_item_new_with_label(about_text[i]);
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(abouts[0]), aboutmenu);
-	for (i = 1; i < ARRAY_SIZE(abouts); ++i)
-		gtk_menu_shell_append(GTK_MENU_SHELL(aboutmenu), abouts[i]);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), abouts[0]);
-	/* 指定bind的widget */
-	choose_if = opts[1];
-	open_index = opts[2];
-	open_log = opts[3];
-	change_pwd = opts[4];
-	exit_daemon = opts[5];
-	manual = helps[1];
-	version = abouts[1];
-	author = abouts[2];
+    GtkWidget *menubar = gtk_menu_bar_new();
+    INIT_MENU_ITEMS(menus);
+    APPEND_ITEMS(menubar, menus);
+    INIT_MENU_ITEMS(opts);
+    APPEND_ITEMS(menus[0].submenu, opts);
+    INIT_MENU_ITEMS(helps);
+    APPEND_ITEMS(menus[1].submenu, helps);
+    return menubar;
 }

@@ -1,36 +1,38 @@
 CC := gcc
 #CC := mips-linux-gcc	#针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
 RM := rm -rf
+MKDIR := mkdir -p
 
 #编译选项在这里修改
 #TARGET只可以取WIN, LINUX几个选项
-TARGET := LINUX
+TARGET := WIN
 #如果是, 就取DEBUG，否则就是空
 IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
 IS_GUI := GUI
 
-CONFIG   := \"./drcomrc\"
+CONFIG	 := \"./drcomrc\"
 RESOURCE := resource
 ICON_PATH		:= \"$(RESOURCE)/icon.png\"
 
 CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
-CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH)
+CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH) -DGUI
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
-CFLAGS_DEBUG	:= -DDEBUG -Wall -g -O0
-CFLAGS_RELEASE	:= -O2
+CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
+CFLAGS_RELEASE	:= -O2 -W -Wall
 
 OBJS	:= md5.o config.o
 CFLAGS	:= -DCONF_PATH=$(CONFIG)
-LDFLAGS	:=
+LDFLAGS :=
 
 ifeq ($(TARGET), WIN)
 	CFLAGS += $(CFLAGS_WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
 ifeq "$(IS_GUI)" ""
-	CONFIG_WIN := config_netif
+	CONFIG_WIN := netif-config
+	LDFLAGSS_GUI += -mwindows
 endif
 else
 	OBJS += eapol.o
@@ -48,6 +50,9 @@ else
 	OBJS += main_cli.o
 endif
 
+#打包编译好的程序
+release: all
+
 all: drcom $(CONFIG_WIN)
 
 drcom: $(OBJS)
@@ -55,13 +60,16 @@ drcom: $(OBJS)
 %.o: %.c
 	$(CC) -c $^ $(CFLAGS)
 
-config_netif: config_netif.o
+netif-config: netif-config.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 %.o: %.c
 	$(CC) -c $^ $(CFLAGS)
 
+#打包源代码
 zip:
 
 clean:
-	$(RM) *.o config_netif.exe config_netif drcom
-.PHONY: clean all zip
+	$(RM) *.o netif-config.exe netif-config drcom
+dist-clean: clean
+	$(RM) cscope.* tags
+.PHONY: clean all zip dist-clean release

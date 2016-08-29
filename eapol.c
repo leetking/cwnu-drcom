@@ -1,5 +1,5 @@
 #include "eapol.h"
-#include "type.h"
+#include "common.h"
 #include "md5.h"
 
 #include <netinet/if_ether.h>

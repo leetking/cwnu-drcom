@@ -1,7 +1,7 @@
 #ifndef _EAPOL_H
 #define _EAPOL_H
 
-#include "type.h"
+#include "common.h"
 
 #ifdef WINDOWS
 # define ETH_ALEN	(6)

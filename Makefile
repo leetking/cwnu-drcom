@@ -35,6 +35,7 @@ ifeq ($(TARGET), WIN)
 	CFLAGS += $(CFLAGS_WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
+	WIN_DLLS := win_dlls
 ifeq "$(IS_GUI)" ""
 	NETIF_CONFIG := netif-config
 	LDFLAGSS_GUI += -mwindows
@@ -68,28 +69,29 @@ netif-config: netif-config.o
 	$(CC) -c $^ $(CFLAGS)
 
 #打包源代码
-tardic := $(APP)-src
-tar: *.c *.h drcomrc Makefile $(RES)
-	if [ ! -e $(tardic) ]; then \
-		$(MKDIR) $(tardic); \
-	fi
-	$(CP) $^ $(tardic)
-	tar -Jcvf $(tardic).tar.xz $(tardic)
-	$(RM) $(tardic)
-
-#打包编译好的程序
-release: all drcomrc $(RES)
+tar: *.c *.h drcomrc.example Makefile $(RES)
 	if [ ! -e $(APP) ]; then \
 		$(MKDIR) $(APP); \
 	fi
-	$(CP) drcom drcomrc $(NETIF_CONFIG) $(APP)
-	$(CP) `ldd drcom $(NETIF_CONFIG)| grep -E '(/mingw32)|(packet.dll)|(wpcap.dll)' | awk '{print $$3}' | sort | uniq` $(APP)
+	$(CP) $^ $(APP)
+	tar -Jcvf $(APP).tar.xz $(APP)
+	$(RM) $(APP)
+
+#打包编译好的程序
+release: all drcomrc.example $(RES) $(WIN_DLLS)
+	if [ ! -e $(APP) ]; then \
+		$(MKDIR) $(APP); \
+	fi
+	$(CP) drcom drcomrc.example $(NETIF_CONFIG) $(APP)
 	tar -Jcvf $(APP).tar.xz $(APP)
 $(RES):
 	if [ ! -e $(APP) ]; then \
 		$(MKDIR) $(APP); \
 	fi
 	$(CP) $(RES) $(APP)
+$(WIN_DLLS):
+	$(CP) -L `ldd drcom $(NETIF_CONFIG)| grep -E -v '/c|/C' | awk '{print $$3}' | sort | uniq` $(APP)
+
 help:
 	@echo "make help|all|release|tar|dist-clean"
 	@echo "     help: Show this page."

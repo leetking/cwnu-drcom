@@ -1,6 +1,7 @@
 CC := gcc
 #CC := mips-linux-gcc	#针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
 RM := rm -rf
+CP := cp -r
 MKDIR := mkdir -p
 
 #编译选项在这里修改
@@ -11,9 +12,13 @@ IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
 IS_GUI := GUI
 
+VERSION := 1.0.0
 CONFIG	 := \"./drcomrc\"
-RESOURCE := resource
-ICON_PATH		:= \"$(RESOURCE)/icon.png\"
+ifneq "$(IS_GUI)" ""
+	RES := resource
+	ICON_PATH := \"$(RES)/icon.png\"
+endif
+APP := cwnu-drcom-$(VERSION)
 
 CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
@@ -31,7 +36,7 @@ ifeq ($(TARGET), WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
 ifeq "$(IS_GUI)" ""
-	CONFIG_WIN := netif-config
+	NETIF_CONFIG := netif-config
 	LDFLAGSS_GUI += -mwindows
 endif
 else
@@ -50,10 +55,7 @@ else
 	OBJS += main_cli.o
 endif
 
-#打包编译好的程序
-release: all
-
-all: drcom $(CONFIG_WIN)
+all: drcom $(NETIF_CONFIG)
 
 drcom: $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -66,10 +68,43 @@ netif-config: netif-config.o
 	$(CC) -c $^ $(CFLAGS)
 
 #打包源代码
-zip:
+tardic := $(APP)-src
+tar: *.c *.h drcomrc Makefile $(RES)
+	if [ ! -e $(tardic) ]; then \
+		$(MKDIR) $(tardic); \
+	fi
+	$(CP) $^ $(tardic)
+	tar -Jcvf $(tardic).tar.xz $(tardic)
+	$(RM) $(tardic)
+
+#打包编译好的程序
+release: all drcomrc $(RES)
+	if [ ! -e $(APP) ]; then \
+		$(MKDIR) $(APP); \
+	fi
+	$(CP) drcom drcomrc $(NETIF_CONFIG) $(APP)
+	$(CP) `ldd drcom $(NETIF_CONFIG)| grep -E '(/mingw32)|(packet.dll)|(wpcap.dll)' | awk '{print $$3}' | sort | uniq` $(APP)
+	tar -Jcvf $(APP).tar.xz $(APP)
+$(RES):
+	if [ ! -e $(APP) ]; then \
+		$(MKDIR) $(APP); \
+	fi
+	$(CP) $(RES) $(APP)
+help:
+	@echo "make help|all|release|tar|dist-clean"
+	@echo "     help: Show this page."
+	@echo "     all: Build all src."
+	@echo "     release: Build all src and tar executable binary program & resource files."
+	@echo "     tar: tar src files & resource files."
+	@echo "     dist-clean: clean all exclude original file such as src & 'Makefile'."
+	@echo "set VARIABLE"
+	@echo "$$ make TARGET=target IS_GUI=gui"
+	@echo "     target: LINUX or WINDOWS"
+	@echo "     gui: GUI or empty(don't type it. e.g. 'IS_GUI=')"
 
 clean:
 	$(RM) *.o netif-config.exe netif-config drcom
 dist-clean: clean
 	$(RM) cscope.* tags
-.PHONY: clean all zip dist-clean release
+	$(RM) $(APP)*
+.PHONY: clean all tar dist-clean release $(RES) help

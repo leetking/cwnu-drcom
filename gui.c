@@ -16,7 +16,7 @@
 # include <pcap.h>
 #endif
 
-#define DRCOM_TITLE "drcom(黑)"
+#define DRCOM_TITLE "drcom"
 
 #define MENU_TEXT_MAX   (48)
 
@@ -68,6 +68,7 @@ static GtkWidget *ai_login;
 static GtkWidget *pwd_ent;
 
 static GtkWidget* drcom_menubar_new(void);
+static GtkWidget* drcom_inputs_new(void);
 
 /* 初始化主界面win */
 int drcom_gui_init(GtkWindow *win)
@@ -77,6 +78,8 @@ int drcom_gui_init(GtkWindow *win)
 	gtk_window_set_position(win, GTK_WIN_POS_CENTER);
 	gtk_window_set_resizable(win, FALSE);
 	set_icon(win, ICON_PATH);
+	gtk_container_set_border_width(GTK_CONTAINER(win), 0);
+
 	main_ui = GTK_WIDGET(win);
 
 	/* 主布局 分 上、中、下 */
@@ -85,36 +88,14 @@ int drcom_gui_init(GtkWindow *win)
 
 	/* 上： 添加菜单栏 */
     gtk_box_pack_start(GTK_BOX(box), drcom_menubar_new(), FALSE, FALSE, 0);
-	/* 中： 主要部分 */
-	GtkWidget *box_main = gtk_vbox_new(FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(box), box_main, TRUE, TRUE, 0);
-	gtk_container_set_border_width(GTK_CONTAINER(box_main), 20);
+	/* 账户和密码输入框 */
+	gtk_box_pack_start(GTK_BOX(box), drcom_inputs_new(), FALSE, FALSE, 0);
+    /* 确认框 */
+    //gtk_box_pack_start();
 
-	GtkWidget *hbox_usr = gtk_hbox_new(FALSE, 5);	/* 账户输入框 */
-	GtkWidget *uname = gtk_label_new("账  户:");
-	/* TODO 实现记录账户，防止账户名过长 */
-	unames_cmb = gtk_combo_box_new_with_entry();
-	if (is_confed) {
-		//GList* items = NULL;
-		//gtk_combo_set_popdown_strings(GTK_COMBO(combo),items);
-		//init_list(unames);
-	}
-	gtk_widget_set_size_request(GTK_WIDGET(unames_cmb), 200, -1);
-	gtk_box_pack_start(GTK_BOX(box_main), hbox_usr, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(hbox_usr), uname, FALSE, FALSE, 0);
-	gtk_box_pack_end(GTK_BOX(hbox_usr), unames_cmb, FALSE, FALSE, 0);
-
-	GtkWidget *pwd = gtk_label_new("密  码:");		/* 密码输入框 */
-	pwd_ent = gtk_entry_new();
-	GtkWidget *hbox_pwd = gtk_hbox_new(FALSE, 5);
-	gtk_entry_set_visibility(GTK_ENTRY(pwd_ent),FALSE);
-	gtk_widget_set_size_request(GTK_WIDGET(pwd_ent), 200, -1);
-	gtk_box_pack_start(GTK_BOX(box_main), hbox_pwd, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(hbox_pwd), pwd, FALSE, FALSE, 0);
-	gtk_box_pack_end(GTK_BOX(hbox_pwd), pwd_ent, FALSE, FALSE, 0);
 	/* 中间显示部分 */
 	GtkWidget *fixed = gtk_fixed_new();
-	gtk_box_pack_start(GTK_BOX(box_main), fixed, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(box), fixed, TRUE, TRUE, 0);
 	rember_pwd = gtk_check_button_new_with_label("记住密码");
 	gtk_fixed_put(GTK_FIXED(fixed), rember_pwd, 50, 20);
 	ai_login = gtk_check_button_new_with_label("智能登录");
@@ -137,7 +118,7 @@ int drcom_gui_init(GtkWindow *win)
 	logoff = gtk_button_new_with_label("注销");
 	gtk_widget_set_size_request(GTK_WIDGET(login), 50, -1);
 	gtk_widget_set_size_request(GTK_WIDGET(logoff), 50, -1);
-	gtk_box_pack_end(GTK_BOX(box_main), hbox_btns, FALSE, FALSE, 0);
+	gtk_box_pack_end(GTK_BOX(box), hbox_btns, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox_btns), login, FALSE, FALSE, 55);
 	gtk_box_pack_start(GTK_BOX(hbox_btns), logoff, FALSE, FALSE, 0);
 
@@ -308,16 +289,15 @@ static int getall_ifs(char (*ifnames)[IFNAMSIZ], int *cnt)
     while (0 < fgets(buff, BUFF_LINE_MAX, fd)) {
         name = get_ifname_from_buff(buff);
         _D("%s\n", name);
-        int j;
         /* 过滤无关网络接口 */
-        for (j = 0; j < ARRAY_SIZE(filter); ++j) {
-            if (!strncmp(filter[j], IFNAMSIZ))
+        for (int i = 0; i < ARRAY_SIZE(filter); ++i) {
+            if (!strncmp(filter[i], name, IFNAMSIZ))
                 continue;
         }
         strncpy(ifnames[i], name, IFNAMSIZ);
         ++i;
         if (i >= *cnt) {
-            close(fd);
+            fclose(fd);
             return -2;
         }
     }
@@ -326,7 +306,6 @@ static int getall_ifs(char (*ifnames)[IFNAMSIZ], int *cnt)
     return i;
 #endif
 }
-
 
 /* 把png图片转换为pixbuf数据 */
 static GdkPixbuf *create_pixbuf(gchar const *icon)
@@ -429,14 +408,18 @@ static GtkWidget* drcom_menubar_new(void)
 {
     menu_item_t menus[] = {
         {NULL, "选项", NONULL, NULL, NONULL, TRUE, FALSE},
+        {NULL, "高级", NONULL, NULL, NONULL, TRUE, FALSE},
         {NULL, "帮助", NONULL, NULL, NONULL, TRUE, FALSE},
     };
     menu_item_t opts[] = {
-        {NULL, "打开首页", NONULL, NULL, NULL, TRUE, FALSE},
+        {NULL, "学校首页", NONULL, NULL, NULL, TRUE, FALSE},
         {NULL, "打开日志", NONULL, NULL, NULL, TRUE, FALSE},
         {NULL, "修改密码", NONULL, NULL, NULL, TRUE, FALSE},
         {NULL, SEP_LINE,   NONULL, NULL, NULL, TRUE, FALSE},
         {NULL, "退出程序", NONULL, (cbkfun_t)gtk_main_quit, NULL, TRUE, FALSE},
+    };
+    menu_item_t advance[] = {
+        {NULL, "选择网卡", NONULL, NULL, NULL, TRUE, FALSE},
     };
     menu_item_t helps[] = {
         {NULL, "使用说明", NONULL, NULL, NULL, TRUE, FALSE},
@@ -448,7 +431,32 @@ static GtkWidget* drcom_menubar_new(void)
     APPEND_ITEMS(menubar, menus);
     INIT_MENU_ITEMS(opts);
     APPEND_ITEMS(menus[0].submenu, opts);
+    INIT_MENU_ITEMS(advance);
+    APPEND_ITEMS(menus[1].submenu, advance);
     INIT_MENU_ITEMS(helps);
-    APPEND_ITEMS(menus[1].submenu, helps);
+    APPEND_ITEMS(menus[2].submenu, helps);
     return menubar;
+}
+static GtkWidget* drcom_inputs_new(void)
+{
+    GtkWidget *centeralign = gtk_alignment_new(0.5, 0.5, 0, 0);
+    gtk_container_set_border_width(GTK_CONTAINER(centeralign), 10);
+    
+    GtkWidget *box = gtk_table_new(2, 2, FALSE);
+    gtk_container_add(GTK_CONTAINER(centeralign), box);
+
+	GtkWidget *uname = gtk_label_new("账  户:"); /* "账户" */
+	/* TODO 实现记录账户，防止账户名过长 */
+    GtkWidget *uinput = gtk_combo_box_new_with_entry();
+	gtk_widget_set_size_request(GTK_WIDGET(uinput), 200, -1);
+	GtkWidget *pwd = gtk_label_new("密  码:");	/* "密码" */
+	GtkWidget *pinput = gtk_entry_new();
+	gtk_entry_set_visibility(GTK_ENTRY(pwd),FALSE);
+    gtk_widget_set_size_request(GTK_WIDGET(pinput), 200, -1);
+    gtk_table_attach_defaults(GTK_TABLE(box), uname, 0, 1, 0, 1);
+    gtk_table_attach_defaults(GTK_TABLE(box), uinput, 1, 2, 0, 1);
+    gtk_table_attach_defaults(GTK_TABLE(box), pwd, 0, 1, 1, 2);
+    gtk_table_attach_defaults(GTK_TABLE(box), pinput, 1, 2, 1, 2);
+
+    return centeralign;
 }

@@ -12,7 +12,7 @@ IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
 IS_GUI := GUI
 
-VERSION := 1.0.0
+VERSION := 0.0.1
 CONFIG	 := \"./drcomrc\"
 ifneq "$(IS_GUI)" ""
 	RES := resource

@@ -78,19 +78,17 @@ tar: *.c *.h drcomrc.example Makefile $(RES)
 	$(RM) $(APP)
 
 #打包编译好的程序
-release: all drcomrc.example $(RES) $(WIN_DLLS)
-	if [ ! -e $(APP) ]; then \
-		$(MKDIR) $(APP); \
-	fi
+release: all drcomrc.example $(RES) $(WIN_DLLS) $(APP)
 	$(CP) drcom drcomrc.example $(NETIF_CONFIG) $(APP)
 	tar -Jcvf $(APP).tar.xz $(APP)
-$(RES):
+$(APP):
 	if [ ! -e $(APP) ]; then \
 		$(MKDIR) $(APP); \
 	fi
+$(RES): $(APP)
 	$(CP) $(RES) $(APP)
-$(WIN_DLLS):
-	$(CP) -L `ldd drcom $(NETIF_CONFIG)| grep -E -v '/c|/C' | awk '{print $$3}' | sort | uniq` $(APP)
+$(WIN_DLLS): $(APP)
+	$(CP) -L `ldd drcom $(NETIF_CONFIG)| grep -E '/mingw32|/usr|/lib|packet.dll|wpcap.dll' | awk '{print $$3}' | sort | uniq` $(APP)
 
 help:
 	@echo "make help|all|release|tar|dist-clean"
@@ -109,4 +107,4 @@ clean:
 dist-clean: clean
 	$(RM) cscope.* tags
 	$(RM) $(APP)*
-.PHONY: clean all tar dist-clean release $(RES) help
+.PHONY: clean all tar dist-clean release help

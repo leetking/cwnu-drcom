@@ -68,7 +68,7 @@ static int eapol_init(pcap_t **skfd)
     sendeapbody = (eapbody_t*)((uchar*)sendeap+sizeof(eap_t));
 
     if (-1 == pcap_findalldevs(&alldevs, errbuf)) {
-        fprintf(stderr, "Get interface: %s\n", errbuf);
+        _M("Get interface: %s\n", errbuf);
         return -1;
     }
 
@@ -95,17 +95,15 @@ static int eapol_init(pcap_t **skfd)
     }
     memcpy(client_mac, oidData->Data, ETH_ALEN);
     PacketCloseAdapter(lpAdapter);
-#ifdef DEBUG
-    printf("%s's MAC: %02X-%02X-%02X-%02X-%02X-%02X\n", ifname,
+    _D("%s's MAC: %02X-%02X-%02X-%02X-%02X-%02X\n", ifname,
             client_mac[0],client_mac[1],client_mac[2],
             client_mac[3],client_mac[4],client_mac[5]);
-#endif
 
     /* 获取网络接口句柄 */
     strncat(ifbuff, ifname, IFNAMSIZ);
     if (NULL == (*skfd = pcap_open(d->name, MTU_MAX,
                     PCAP_OPENFLAG_PROMISCUOUS, TIMEOUT*1000, NULL, errbuf))) {
-        fprintf(stderr, "Get interface handler:%s\n", errbuf);
+        _M("Get interface handler:%s\n", errbuf);
         pcap_freealldevs(alldevs);
         return -1;
     }
@@ -164,23 +162,20 @@ static int filte_req_md5clg(pcap_t *skfd)
             if (recveap->code == EAP_CODE_REQ
                     && recveap->type == EAP_TYPE_MD5) {
 #ifdef DEBUG
-                int i;
-                printf("id: %d\n", sendeap->id);
-                printf("md5: ");
-                for (i = 0; i < recveapbody->md5size; ++i)
-                    printf("%.2x", recveapbody->md5value[i]);
-                printf("\n");
-                printf("ex-md5: ");
-                for (i = 0; i < ntohs(recveap->len) - recveapbody->md5size - 2; ++i)
-                    printf("%.2x", recveapbody->md5exdata[i]);
-                printf("\n");
+                _M("id: %d\n", sendeap->id);
+                _M("md5: ");
+                for (int i = 0; i < recveapbody->md5size; ++i)
+                    _M("%.2x", recveapbody->md5value[i]);
+                _M("\n");
+                _M("ex-md5: ");
+                for (int i = 0; i < ntohs(recveap->len) - recveapbody->md5size - 2; ++i)
+                    _M("%.2x", recveapbody->md5exdata[i]);
+                _M("\n");
 #endif
                 return 0;
             } else if (recveap->id == sendeap->id
                     && recveap->code == EAP_CODE_FAIL) {
-#ifdef DEBUG
-                printf("id: %d fail.\n", sendeap->id);
-#endif
+                _D("id: %d fail.\n", sendeap->id);
                 return -2;
             }
         }
@@ -208,21 +203,18 @@ static int filte_success(pcap_t *skfd)
                 && recveapol->type == EAPOL_PACKET ) {
             if (recveap->id == sendeap->id
                     && recveap->code == EAP_CODE_SUCS) {
-#ifdef DEBUG
-                printf("id: %d login success.\n", sendeap->id);
-#endif
+                _D("id: %d login success.\n", sendeap->id);
                 return 0;
             } else if (recveap->id == sendeap->id
                     && recveap->code == EAP_CODE_FAIL) {
-#ifdef DEBUG
-                printf("id: %d fail.\n", sendeap->id);
-#endif
+                _D("id: %d fail.\n", sendeap->id);
                 return -2;
             }
         }
     }
     return -1;
 }
+
 /*
  * 广播发送eapol-start
  */
@@ -316,7 +308,7 @@ int eaplogin(char const *uname, char const *pwd,
     int state;
     pcap_t *skfd;
 
-    printf("[0] Initilize interface...\n");
+    _M("[0] Initilize interface...\n");
     strncpy(_uname, uname, UNAME_LEN);
     strncpy(_pwd, pwd, PWD_LEN);
     pwdlen = strlen(_pwd);
@@ -325,34 +317,34 @@ int eaplogin(char const *uname, char const *pwd,
     /* 无论如何先请求一下下线 */
     eapol_logoff(skfd);
     /* eap-start */
-    printf("[1] Send eap-start...\n");
+    _M("[1] Send eap-start...\n");
     for (i = 0; i < TRY_TIMES; ++i) {
         eapol_start(skfd);
         if (0 == filte_req_identity(skfd))
             break;
-        printf(" [1] %dth Try send eap-start...\n", i+1);
+        _M(" [1] %dth Try send eap-start...\n", i+1);
     }
     if (i >= TRY_TIMES) goto _timeout;
 
     /* response-identity */
-    printf("[2] Send response-identity...\n");
+    _M("[2] Send response-identity...\n");
     for (i = 0; i < TRY_TIMES; ++i) {
         eap_res_identity(skfd);
         state = filte_req_md5clg(skfd);
         if (0 == state) break;
         else if (-2 == state) goto _no_uname;
-        printf(" [2] %dth Try send response-identity...\n", i+1);
+        _M(" [2] %dth Try send response-identity...\n", i+1);
     }
     if (i >= TRY_TIMES) goto _timeout;
 
     /* response-md5clg */
-    printf("[3] Send response-md5clg...\n");
+    _M("[3] Send response-md5clg...\n");
     for (i = 0; i < TRY_TIMES; ++i) {
         eap_md5_clg(skfd);
         state = filte_success(skfd);
         if (0 == state) break;	/* 登录成功 */
         else if (-2 == state) goto _pwd_err;
-        printf(" [3] %dth Try send response-md5clg...\n", i+1);
+        _M(" [3] %dth Try send response-md5clg...\n", i+1);
     }
     if (i >= TRY_TIMES) goto _timeout;
 
@@ -360,13 +352,13 @@ int eaplogin(char const *uname, char const *pwd,
     return 0;
 
 _timeout:
-    printf("[ERROR] Not server in range.\n");
+    _M("[ERROR] Not server in range.\n");
     return -2;
 _no_uname:
-    printf("[ERROR] No this user(%s).\n", uname);
+    _M("[ERROR] No this user(%s).\n", uname);
     return 1;
 _pwd_err:
-    printf("[ERROR] The server refuse to login. Password error.\n");
+    _M("[ERROR] The server refuse to login. Password error.\n");
     return 4;
 }
 int eaprefresh(char const *uname, char const *pwd,
@@ -380,20 +372,20 @@ int eaplogoff(void)
     int state;
     int i;
 
-    printf("[0] Initilize interface...\n");
+    _M("[0] Initilize interface...\n");
     if (0 != eapol_init(&skfd))
         return -1;
-    printf("[1] Requset logoff...\n");
+    _M("[1] Requset logoff...\n");
     for (i = 0; i < TRY_TIMES; ++i) {
         eapol_logoff(skfd);
         state = filte_success(skfd);
         if (-2 == state) {
-            printf("[2] Logoff!\n");
+            _M("[2] Logoff!\n");
             return 0;
         }
-        printf(" [1] %dth Try Requset logoff...\n", i+1);
+        _M(" [1] %dth Try Requset logoff...\n", i+1);
     }
-    printf("[ERROR] Not server in range. or You were logoff.\n");
+    _M("[ERROR] Not server in range. or You were logoff.\n");
     return -1;
 }
 void setifname(char *_ifname)

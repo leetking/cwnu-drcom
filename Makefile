@@ -80,7 +80,7 @@ tar: *.c *.h drcomrc.example Makefile $(RES)
 #打包编译好的程序
 release: all drcomrc.example $(RES) $(WIN_DLLS) $(APP)
 	$(CP) drcom drcomrc.example $(NETIF_CONFIG) $(APP)
-	tar -Jcvf $(APP).tar.xz $(APP)
+	zip -r $(APP).zip $(APP)
 $(APP):
 	if [ ! -e $(APP) ]; then \
 		$(MKDIR) $(APP); \

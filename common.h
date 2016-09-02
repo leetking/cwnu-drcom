@@ -17,6 +17,7 @@ typedef unsigned int uint32;	/* 四个字节 */
 
 #undef PRINT
 #ifdef GUI
+# include <glib.h>
 # define PRINT(...) g_print(__VA_ARGS__)
 #else
 # define PRINT(...) fprintf(stderr, __VA_ARGS__)
@@ -32,6 +33,6 @@ typedef unsigned int uint32;	/* 四个字节 */
 # define _D(...)    ((void)0)
 #endif
 
-#define _M(...)    PRINT(__VA_ARGS__)
+#define _M(...)    PRINT(__VA_ARGS__);
 
 #endif

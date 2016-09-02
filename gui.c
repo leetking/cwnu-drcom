@@ -146,6 +146,7 @@ static void choose_if_cbk(GtkWidget *widget, gpointer father)
 	}
 	for (int i = 0; i < ifs_max; ++i) {
 #ifdef LINUX
+		_D("ifs[%d].name: %s\n", i, ifs[i].name);
 		add_to_linearstore(list, ifs[i].name);
 #elif defined(WINDOWS)
         add_to_linearstore(list, ifs[i].desc);
@@ -243,22 +244,22 @@ static char *get_ifname_from_buff(char *buff)
     return s;
 }
 #endif
-#ifdef WINDOWS
 static int is_filter(char const *ifname)
 {
     /* 过滤掉无线，虚拟机接口等 */
     char const *filter[] = {
+		/* windows */
         "Wireless", "Microsoft",
         "Virtual",
+		/* linux */
+		"lo", "wlan", "vboxnet",
     };
     for (int i = 0; i < ARRAY_SIZE(filter); ++i) {
-        _D("ifname: %s <-> filer: %s\n", ifname, filter[i]);
         if (strstr(ifname, filter[i]))
             return 1;
     }
     return 0;
 }
-#endif
 /*
  * 获取所有网络接口
  * ifnames 实际获取的接口
@@ -280,6 +281,7 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
     FILE *fd = fopen(_PATH_PROCNET_DEV, "r");
     char const *filter[] = {
         "lo", "docker",
+		"wlan", "vboxnet",
     };
     char *name;
     if (NULL == fd) {
@@ -300,12 +302,10 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
         name = get_ifname_from_buff(buff);
         _D("%s\n", name);
         /* 过滤无关网络接口 */
-        for (int i = 0; i < ARRAY_SIZE(filter); ++i) {
-            if (!strncmp(filter[i], name, IFNAMSIZ)) {
-                _D("filtered %s.\n", name);
-                continue;
-            }
-        }
+		if (is_filter(name)) {
+			_D("filtered %s.\n", name);
+			continue;
+		}
         strncpy(ifs[i].name, name, IFNAMSIZ);
         _D("ifs[%d].name: %s\n", i, ifs[i].name);
         ++i;

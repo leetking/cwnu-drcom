@@ -39,15 +39,18 @@ ifeq ($(TARGET), WIN)
 ifeq "$(IS_GUI)" ""
 	NETIF_CONFIG := netif-config
 	LDFLAGSS_GUI += -mwindows
-endif
+endif #IS_GUI
 else
+	CFLAGS += -DLINUX
 	OBJS += eapol.o
 endif
+
 ifeq ($(IS_DEBUG), DEBUG)
 	CFLAGS += $(CFLAGS_DEBUG)
 else
 	CFLAGS += $(CFLAGS_RELEASE)
 endif
+
 ifeq ($(IS_GUI), GUI)
 	CFLAGS += $(CFLAGS_GUI)
 	LDFLAGS += $(LDFLAGSS_GUI)

@@ -145,7 +145,7 @@ static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
 #ifdef DEBUG
 				_M("id: %d\n", sendeap->id);
 				_M("md5: ");
-				for (i = 0; i < recveapbody->md5size; ++i)
+				for (int i = 0; i < recveapbody->md5size; ++i)
 					_M("%.2x", recveapbody->md5value[i]);
 				_M("\n");
 				_M("ex-md5: ");

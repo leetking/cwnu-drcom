@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
+#include <unistd.h>
 #include "eapol.h"
 #include "config.h"
 
@@ -12,6 +14,13 @@
  */
 static int getconf(char *uname, char *pwd, char *ifname);
 static void help(int argc, char **argv);
+/*
+ * 获取程序所在的目录
+ * exedir: 返回目录
+ * @return: 0: 成功
+ *         !0: 失败
+ */
+static int getexedir(char *exedir);
 
 int main(int argc, char **argv)
 {
@@ -57,10 +66,13 @@ static int getconf(char *_uname, char *_pwd, char *_ifname)
 	char uname[MAX(RECORD_LEN, UNAME_LEN)];
 	char pwd[MAX(RECORD_LEN, PWD_LEN)];
 	char ifname[MAX(RECORD_LEN, IFNAMSIZ)];
+	char configpath[PATH_MAX];
+	if (getexedir(configpath)) return -1;
+	strcat(configpath, CONF_PATH);
 #ifdef DEBUG
-	printf("configfile path: %s\n", CONF_PATH);
+	printf("configfile path: %s\n", configpath);
 #endif
-	FILE *conf = fopen(CONF_PATH, "r");
+	FILE *conf = fopen(configpath, "r");
 	if (NULL == conf) {
 		perror("drcomrc");
 		return -1;
@@ -89,4 +101,20 @@ static void help(int argc, char **argv)
 	printf("      -l: logoff.\n");
 	printf("      -h: show this help page.\n");
 	printf("NOTE: you must need root to login.\n");
+}
+static int getexedir(char *exedir)
+{
+	int cnt = readlink("/proc/self/exe", exedir, PATH_MAX);
+	if (cnt < 0 || cnt >= PATH_MAX)
+		return -1;
+#ifdef DEBUG
+	printf("exedir: %s\n", exedir);
+#endif
+	char *end = strrchr(exedir, '/');
+	if (!end) return -1;
+	*(end+1) = '\0';
+#ifdef DEBUG
+	printf("exedir: %s\n", exedir);
+#endif
+	return 0;
 }

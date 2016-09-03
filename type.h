@@ -15,4 +15,12 @@ typedef unsigned int uint32;	/* 四个字节 */
 #define MAX(x, y)	((x)>(y)?(x):(y))
 #define MIN(x, y)	((x)>(y)?(y):(x))
 
+#ifdef DEBUG
+# define _D(...) fprintf(stderr, __VA_ARGS__)
+#else
+# define _D(...) ((void)0)
+#endif
+
+#define _M(...) fprintf(stderr, __VA_ARGS__)
+
 #endif

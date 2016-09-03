@@ -29,9 +29,6 @@ ifeq ($(TARGET), WIN)
 	CFLAGS += $(CFLAGS_WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
-ifeq "$(IS_GUI)" ""
-	CONFIG_WIN := config_netif
-endif
 else
 	OBJS += eapol.o
 endif
@@ -45,7 +42,7 @@ ifeq ($(IS_GUI), GUI)
 	LDFLAGS += $(LDFLAGSS_GUI)
 	OBJS += main_gui.o gui.o
 else
-	OBJS += main_cli.o
+	OBJS += main_cli.o wrap_eapol.o
 endif
 
 all: drcom $(CONFIG_WIN)
@@ -55,13 +52,8 @@ drcom: $(OBJS)
 %.o: %.c
 	$(CC) -c $^ $(CFLAGS)
 
-config_netif: config_netif.o
-	$(CC) -o $@ $^ $(LDFLAGS)
-%.o: %.c
-	$(CC) -c $^ $(CFLAGS)
-
 zip:
 
 clean:
-	$(RM) *.o config_netif.exe config_netif drcom
+	$(RM) *.o drcom
 .PHONY: clean all zip

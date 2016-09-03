@@ -15,7 +15,7 @@ RESOURCE := resource
 ICON_PATH		:= \"$(RESOURCE)/icon.png\"
 
 CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
-LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
+LDFLAGSS_WIN	:= -lws2_32 -lkernel32 -L wpcap/lib -lwpcap -lpacket
 CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH)
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
 CFLAGS_DEBUG	:= -DDEBUG -Wall -g -O0

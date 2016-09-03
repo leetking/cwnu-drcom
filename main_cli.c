@@ -5,6 +5,15 @@
 #include <unistd.h>
 #include "eapol.h"
 #include "config.h"
+#ifdef LINUX
+# define _PATH_MAX  PATH_MAX
+# define PATH_SEP   '/'
+#elif defined(WINDOWS)
+# include <windows.h>
+# define _PATH_MAX  MAX_PATH
+# define PATH_SEP   '\\'
+//# include <winbase.h>
+#endif
 
 /*
  * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
@@ -66,7 +75,7 @@ static int getconf(char *_uname, char *_pwd, char *_ifname)
 	char uname[MAX(RECORD_LEN, UNAME_LEN)];
 	char pwd[MAX(RECORD_LEN, PWD_LEN)];
 	char ifname[MAX(RECORD_LEN, IFNAMSIZ)];
-	char configpath[PATH_MAX];
+	char configpath[PATH_MAX+1];
 	if (getexedir(configpath)) return -1;
 	strcat(configpath, CONF_PATH);
 #ifdef DEBUG
@@ -104,13 +113,17 @@ static void help(int argc, char **argv)
 }
 static int getexedir(char *exedir)
 {
-	int cnt = readlink("/proc/self/exe", exedir, PATH_MAX);
-	if (cnt < 0 || cnt >= PATH_MAX)
+#ifdef LINUX
+	int cnt = readlink("/proc/self/exe", exedir, _PATH_MAX+1);
+#elif defined(WINDOWS)
+    int cnt = GetModuleFileName(NULL, exedir, _PATH_MAX+1);
+#endif
+	if (cnt < 0 || cnt > _PATH_MAX)
 		return -1;
 #ifdef DEBUG
 	printf("exedir: %s\n", exedir);
 #endif
-	char *end = strrchr(exedir, '/');
+	char *end = strrchr(exedir, PATH_SEP);
 	if (!end) return -1;
 	*(end+1) = '\0';
 #ifdef DEBUG

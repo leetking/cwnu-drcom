@@ -75,7 +75,7 @@ static int getconf(char *_uname, char *_pwd, char *_ifname)
 	char uname[MAX(RECORD_LEN, UNAME_LEN)];
 	char pwd[MAX(RECORD_LEN, PWD_LEN)];
 	char ifname[MAX(RECORD_LEN, IFNAMSIZ)];
-	char configpath[PATH_MAX+1];
+	char configpath[_PATH_MAX+1];
 	if (getexedir(configpath)) return -1;
 	strcat(configpath, CONF_PATH);
 #ifdef DEBUG

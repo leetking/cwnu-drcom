@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 #include <pcap.h>
 #include "wrap_eapol.h"
 #include "type.h"
@@ -28,6 +31,19 @@ static int is_filter(char const *ifname)
     }
     return 0;
 }
+#ifdef LINUX
+static char *get_ifname_from_buff(char *buff)
+{
+    char *s;
+    while (isspace(*buff))
+        ++buff;
+    s = buff;
+    while (':' != *buff && '\0' != *buff)
+        ++buff;
+    *buff = '\0';
+    return s;
+}
+#endif
 /*
  * 获取所有网络接口
  * ifnames 实际获取的接口
@@ -47,10 +63,6 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
 #define BUFF_LINE_MAX	(1024)
     char buff[BUFF_LINE_MAX];
     FILE *fd = fopen(_PATH_PROCNET_DEV, "r");
-    char const *filter[] = {
-        "lo", "docker",
-		"wlan", "vboxnet",
-    };
     char *name;
     if (NULL == fd) {
         perror("fopen");

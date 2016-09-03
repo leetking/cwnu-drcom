@@ -30,6 +30,7 @@ ifeq ($(TARGET), WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
 else
+	CFLAGS += -DLINUX
 	OBJS += eapol.o
 endif
 ifeq ($(IS_DEBUG), DEBUG)

@@ -14,7 +14,7 @@
 
 #define IDEN_LEN	UNAME_LEN
 
-#define TRY_TIMES	(7)
+#define TRY_TIMES	(3)
 #define TIMEOUT		(3)
 
 /* 最多16个接口 */

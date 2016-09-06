@@ -24,8 +24,11 @@ static int is_filter(char const *ifname)
         "Virtual",
 		/* linux */
 		"lo", "wlan", "vboxnet",
+		"ifb", "gre", "teql",
+		"br", "imq"
     };
-    for (int i = 0; i < ARRAY_SIZE(filter); ++i) {
+	int i;
+    for (i = 0; i < ARRAY_SIZE(filter); ++i) {
         if (strstr(ifname, filter[i]))
             return 1;
     }
@@ -125,7 +128,8 @@ extern int try_smart_login(char const *uname, char const *pwd,
     iflist_t ifs[IFS_MAX];
     int ifs_max = IFS_MAX;
     if (0 >= getall_ifs(ifs, &ifs_max)) return -3;
-    for (int i = 0; i < ifs_max; ++i) {
+	int i;
+    for (i = 0; i < ifs_max; ++i) {
         _M("%d. try interface (%s) to login\n", i,
 #ifdef LINUX
                 ifs[i].name

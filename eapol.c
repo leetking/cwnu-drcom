@@ -298,6 +298,9 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 	for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
 		status = filte_req_identity(skfd, skaddr);
 		if (0 == status) {
+#ifdef DEBUG
+			printf("[KPALV] get a request-identity\n");
+#endif
 			eap_res_identity(skfd, skaddr);
 			stime = time((time_t*)NULL);
 		}
@@ -398,14 +401,14 @@ int eaplogin(char const *uname, char const *pwd)
 #ifdef DEBUG
 			printf("kpalv curpid: %d\n", curpid);
 #endif
-			fseek(kpalvpid, 0L, SEEK_SET);
+			ftruncate(fileno(kpalvpid), 0);
 			fprintf(kpalvpid, "%d", curpid);
 			fflush(kpalvpid);
 			if (0 == eap_keep_alive(skfd, (struct sockaddr*)&ll)) {
 				printf("[KPALV] Server maybe not need keep alive paket.\n");
 				printf("[KPALV] Now, keep alive process quit!\n");
 			}
-			fseek(kpalvpid, 0L, SEEK_SET);
+			ftruncate(fileno(kpalvpid), 0);
 			fprintf(kpalvpid, "-1");	/* 写入-1表示已经离开 */
 			fflush(kpalvpid);
 			fclose(kpalvpid);

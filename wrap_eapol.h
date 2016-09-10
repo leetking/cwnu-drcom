@@ -7,8 +7,6 @@
 /*
  * 自动选择网卡登录
  */
-extern int try_smart_login(char const *uname, char const *pwd,
-        int (*sucess_handle)(void const*), void const *args);
-
+extern int try_smart_login(char const *uname, char const *pwd);
 
 #endif

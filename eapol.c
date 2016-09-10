@@ -8,13 +8,16 @@
 #include <netpacket/packet.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
+#include <signal.h>
 
 #define BUFF_LEN	(1024)
 
@@ -32,6 +35,16 @@ static char _uname[UNAME_LEN];
 static char _pwd[PWD_LEN];
 static int pwdlen;
 
+static int mac_equal(uchar *mac1, uchar *mac2);
+static int eap_keep_alive(int skfd, struct sockaddr const *skaddr);
+static int eap_md5_clg(int skfd, struct sockaddr const *skaddr);
+static int eap_res_identity(int skfd, struct sockaddr const *skaddr);
+static int eapol_init(int *skfd, struct sockaddr *skaddr);
+static int eapol_start(int skfd, struct sockaddr const *skaddr);
+static int eapol_logoff(int skfd, struct sockaddr const *skaddr);
+static int filte_req_identity(int skfd, struct sockaddr const *skaddr);
+static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr);
+static int filte_success(int skfd, struct sockaddr const *skaddr);
 
 /* 比较两个mac是否相等 */
 static int mac_equal(uchar *mac1, uchar *mac2)
@@ -115,7 +128,7 @@ addr_err:
 static int filte_req_identity(int skfd, struct sockaddr const *skaddr)
 {
 	int stime = time((time_t*)NULL);
-	for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
+	for (; difftime(time((time_t*)NULL), stime) <= TIMEOUT;) {
 		/* TODO 看下能不能只接受某类包，包过滤 */
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
 		/* eap包且是request */
@@ -138,7 +151,7 @@ static int filte_req_identity(int skfd, struct sockaddr const *skaddr)
 static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
 {
 	int stime = time((time_t*)NULL);
-	for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
+	for (; difftime(time((time_t*)NULL), stime) <= TIMEOUT;) {
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
 		/* 是request且是eap-request-md5clg */
 		if (recvethii->type == htons(ETHII_8021X)
@@ -179,7 +192,7 @@ static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
 static int filte_success(int skfd, struct sockaddr const *skaddr)
 {
 	int stime = time((time_t*)NULL);
-	for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
+	for (; difftime(time((time_t*)NULL), stime) <= TIMEOUT;) {
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
 		if (recvethii->type == htons(ETHII_8021X)
 				&& mac_equal(recvethii->dst_mac, client_mac)
@@ -267,9 +280,28 @@ static int eap_md5_clg(int skfd, struct sockaddr const *skaddr)
 			0, skaddr, sizeof(struct sockaddr_ll));
 	return 0;
 }
-/* 保持在线 */
+
+/*
+ * 保持在线
+ * eap心跳包
+ * 某些eap实现需要心跳或多次认证
+ * 目前有些服务器会有如下特征
+ * 每一分钟，服务端发送一个request-identity包来判断是否在线
+ * 请求三次
+ */
 static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 {
+#define EAP_KPALV_TIMEOUT	(180)	/* 3分钟 */
+	int status;
+	time_t stime = time((time_t*)NULL);
+	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
+	for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
+		status = filte_req_identity(skfd, skaddr);
+		if (0 == status) {
+			eap_res_identity(skfd, skaddr);
+			stime = time((time_t*)NULL);
+		}
+	}
 	return 0;
 }
 
@@ -277,10 +309,6 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
  * eap认证
  * uname: 用户名
  * pwd: 密码
- * sucess_handle: 认证成功之后调用下一步认证
- * args: sucess_handle需要的参数
- * 如果不需要继续认证，sucess_handle为NULL
- * 如果sucess_handle不需要参数，args为NULL
  * @return: 0: 成功
  *          1: 用户不存在
  *          2: 密码错误
@@ -289,8 +317,7 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
  *          -1: 没有找到合适网络接口
  *          -2: 没有找到服务器
  */
-int eaplogin(char const *uname, char const *pwd,
-		int (*sucess_handle)(void const*), void const *args)
+int eaplogin(char const *uname, char const *pwd)
 {
 	int i;
 	int state;
@@ -337,7 +364,58 @@ int eaplogin(char const *uname, char const *pwd,
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
-	/* TODO 登录成功,然后呢？ */
+	/* 登录成功，生成心跳进程 */
+	switch (fork()) {
+	case 0:
+		{
+			/* 放到后台 */
+			/* 如果存在原来的keep alive进程，就干掉他 */
+#define PID_FILE	"/tmp/cwnu-drcom.pid"
+			FILE *kpalvpid = fopen(PID_FILE, "r+");
+			if (NULL == kpalvpid) {
+				perror(PID_FILE);	/* 不存在，创建 */
+				kpalvpid = fopen(PID_FILE, "w+");
+				if (NULL == kpalvpid) {
+					perror(PID_FILE);
+					printf("[KPALV] Detect pid file eror! quit!\n");
+					exit(1);
+				}
+			}
+			pid_t oldpid;
+			fseek(kpalvpid, 0L, SEEK_SET);
+			if ((1 == fscanf(kpalvpid, "%d", (int*)&oldpid))
+					&& (oldpid != (pid_t)-1)) {
+#ifdef DEBUG
+				printf("oldkpalv pid: %d\n", oldpid);
+#endif
+				kill(oldpid, SIGKILL);
+			}
+			setsid();
+			chdir("/");
+			umask(0);
+			/* 在/tmp下写入自己(keep alive)pid */
+			pid_t curpid = getpid();
+#ifdef DEBUG
+			printf("kpalv curpid: %d\n", curpid);
+#endif
+			fseek(kpalvpid, 0L, SEEK_SET);
+			fprintf(kpalvpid, "%d", curpid);
+			fflush(kpalvpid);
+			if (0 == eap_keep_alive(skfd, (struct sockaddr*)&ll)) {
+				printf("[KPALV] Server maybe not need keep alive paket.\n");
+				printf("[KPALV] Now, keep alive process quit!\n");
+			}
+			fseek(kpalvpid, 0L, SEEK_SET);
+			fprintf(kpalvpid, "-1");	/* 写入-1表示已经离开 */
+			fflush(kpalvpid);
+			fclose(kpalvpid);
+			close(skfd);
+		}
+		exit(0);
+		break;
+	case -1:
+		printf("[WARN] Cant create daemon, maybe offline after soon.\n");
+	}
 	close(skfd);
 	return 0;
 
@@ -355,7 +433,7 @@ _pwd_err:
 	return 4;
 }
 
-int eaplogoff()
+int eaplogoff(void)
 {
 	int skfd;
 	struct sockaddr_ll ll;
@@ -379,10 +457,9 @@ int eaplogoff()
 	return -1;
 }
 
-int eaprefresh(char const *uname, char const *pwd,
-		int (*sucess_handle)(void const*), void const *args)
+int eaprefresh(char const *uname, char const *pwd)
 {
-	return eaplogin(uname, pwd, sucess_handle, args);
+	return eaplogin(uname, pwd);
 }
 
 /* 设置ifname */

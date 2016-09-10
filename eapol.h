@@ -94,10 +94,6 @@ typedef union {
  * eap认证
  * uname: 用户名
  * pwd: 密码
- * sucess_handle: 认证成功之后调用下一步认证
- * args: sucess_handle需要的参数
- * 如果不需要继续认证，sucess_handle为NULL，那么接着的args会被忽略
- * 如果sucess_handle不需要参数，args为NULL
  * @return: 0: 成功
  *          1: 用户不存在
  *          2: 密码错误
@@ -106,19 +102,17 @@ typedef union {
  *          -1: 没有找到合适网络接口
  *          -2: 没有找到服务器
  */
-int eaplogin(char const *uname, char const *pwd,
-		int (*sucess_handle)(void const*), void const *args);
+extern int eaplogin(char const *uname, char const *pwd);
 /*
  * eap下线
  */
-int eaplogoff(void);
+extern int eaplogoff(void);
 /*
  * eap重新登录
  */
-int eaprefresh(char const *uname, char const *pwd,
-		int (*sucess_handle)(void const*), void const *args);
+extern int eaprefresh(char const *uname, char const *pwd);
 /*
  * 用来设置ifname
  */
-void setifname(char *ifname);
+extern void setifname(char *ifname);
 #endif

@@ -1,5 +1,5 @@
-#CC := gcc
-CC := mips-openwrt-linux-gcc
+CC := gcc
+#CC := mips-openwrt-linux-gcc
 #CC := mipsel-openwrt-linux-gcc
 #CC := mips-linux-gcc	#针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
 RM := rm -rf

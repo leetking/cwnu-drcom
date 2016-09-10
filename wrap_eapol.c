@@ -122,8 +122,7 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
 }
 
 
-extern int try_smart_login(char const *uname, char const *pwd,
-        int (*sucess_handle)(void const*), void const *args)
+extern int try_smart_login(char const *uname, char const *pwd)
 {
     iflist_t ifs[IFS_MAX];
     int ifs_max = IFS_MAX;
@@ -140,7 +139,7 @@ extern int try_smart_login(char const *uname, char const *pwd,
           );
         setifname(ifs[i].name);
         int statu;
-        switch (statu = eaplogin(uname, pwd, NULL, NULL)) {
+        switch (statu = eaplogin(uname, pwd)) {
             default:
                 break;
             case 0:

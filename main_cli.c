@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-    switch (try_smart_login(uname, pwd, NULL, NULL)) {
+    switch (try_smart_login(uname, pwd)) {
         case 0: printf("Login success!!\n"); break;
         case 1: fprintf(stderr, "No this user.\n"); break;
         case 2: fprintf(stderr, "Password error.\n"); break;

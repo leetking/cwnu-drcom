@@ -127,6 +127,7 @@ extern int try_smart_login(char const *uname, char const *pwd,
 {
     iflist_t ifs[IFS_MAX];
     int ifs_max = IFS_MAX;
+	int ret = -3;
     if (0 >= getall_ifs(ifs, &ifs_max)) return -3;
 	int i;
     for (i = 0; i < ifs_max; ++i) {
@@ -145,8 +146,8 @@ extern int try_smart_login(char const *uname, char const *pwd,
             case 0:
             case 1:
             case 2:
-                return statu;
+				ret = statu;
         }
     }
-    return -3;
+	return ret;
 }

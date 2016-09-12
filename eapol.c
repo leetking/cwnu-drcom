@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <time.h>
 #include <signal.h>
@@ -45,6 +46,7 @@ static int eapol_logoff(int skfd, struct sockaddr const *skaddr);
 static int filte_req_identity(int skfd, struct sockaddr const *skaddr);
 static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr);
 static int filte_success(int skfd, struct sockaddr const *skaddr);
+static int eap_daemon(int skfd, struct sockaddr const *skaddr);
 
 /* 比较两个mac是否相等 */
 static int mac_equal(uchar *mac1, uchar *mac2)
@@ -312,6 +314,60 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 }
 
 /*
+ * 后台心跳进程
+ * @return: 0, 正常运行
+ * 			-1, 运行失败
+ */
+static int eap_daemon(int skfd, struct sockaddr const *skaddr)
+{
+	/* 如果存在原来的keep alive进程，就干掉他 */
+#define PID_FILE	"/tmp/cwnu-drcom.pid"
+	FILE *kpalvpid = fopen(PID_FILE, "r+");
+	if (NULL == kpalvpid) {
+		printf("[KPALV] No process pidfile. %s: %s\n", PID_FILE, strerror(errno));
+		kpalvpid = fopen(PID_FILE, "w+"); /* 不存在，创建 */
+		if (NULL == kpalvpid) {
+			perror(PID_FILE);
+			printf("[KPALV] Detect pid file eror! quit!\n");
+			return -1;
+		}
+	}
+	pid_t oldpid;
+	fseek(kpalvpid, 0L, SEEK_SET);
+	if ((1 == fscanf(kpalvpid, "%d", (int*)&oldpid))
+			&& (oldpid != (pid_t)-1)) {
+#ifdef DEBUG
+		printf("oldkpalv pid: %d\n", oldpid);
+#endif
+		kill(oldpid, SIGKILL);
+	}
+	setsid();
+	if (0 != chdir("/"))
+		printf("[KPALV:WARN] %s\n", strerror(errno));
+	umask(0);
+	/* 在/tmp下写入自己(keep alive)pid */
+	pid_t curpid = getpid();
+#ifdef DEBUG
+	printf("kpalv curpid: %d\n", curpid);
+#endif
+	if (0 != ftruncate(fileno(kpalvpid), 0))
+		printf("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
+	fprintf(kpalvpid, "%d", curpid);
+	fflush(kpalvpid);
+	if (0 == eap_keep_alive(skfd, skaddr)) {
+		printf("[KPALV] Server maybe not need keep alive paket.\n");
+		printf("[KPALV] Now, keep alive process quit!\n");
+	}
+	if (0 != ftruncate(fileno(kpalvpid), 0))
+		printf("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
+	fprintf(kpalvpid, "-1");	/* 写入-1表示已经离开 */
+	fflush(kpalvpid);
+	fclose(kpalvpid);
+
+	return 0;
+}
+
+/*
  * eap认证
  * uname: 用户名
  * pwd: 密码
@@ -330,6 +386,7 @@ int eaplogin(char const *uname, char const *pwd)
 	int skfd;
 	struct sockaddr_ll ll;
 
+	printf("Use user '%s' to login...\n", uname);
 	printf("[0] Initilize interface...\n");
 	strncpy(_uname, uname, UNAME_LEN);
 	strncpy(_pwd, pwd, PWD_LEN);
@@ -373,54 +430,15 @@ int eaplogin(char const *uname, char const *pwd)
 	/* 登录成功，生成心跳进程 */
 	switch (fork()) {
 	case 0:
-		{
-			/* 放到后台 */
-			/* 如果存在原来的keep alive进程，就干掉他 */
-#define PID_FILE	"/tmp/cwnu-drcom.pid"
-			FILE *kpalvpid = fopen(PID_FILE, "r+");
-			if (NULL == kpalvpid) {
-				perror(PID_FILE);	/* 不存在，创建 */
-				kpalvpid = fopen(PID_FILE, "w+");
-				if (NULL == kpalvpid) {
-					perror(PID_FILE);
-					printf("[KPALV] Detect pid file eror! quit!\n");
-					exit(1);
-				}
-			}
-			pid_t oldpid;
-			fseek(kpalvpid, 0L, SEEK_SET);
-			if ((1 == fscanf(kpalvpid, "%d", (int*)&oldpid))
-					&& (oldpid != (pid_t)-1)) {
-#ifdef DEBUG
-				printf("oldkpalv pid: %d\n", oldpid);
-#endif
-				kill(oldpid, SIGKILL);
-			}
-			setsid();
-			chdir("/");
-			umask(0);
-			/* 在/tmp下写入自己(keep alive)pid */
-			pid_t curpid = getpid();
-#ifdef DEBUG
-			printf("kpalv curpid: %d\n", curpid);
-#endif
-			ftruncate(fileno(kpalvpid), 0);
-			fprintf(kpalvpid, "%d", curpid);
-			fflush(kpalvpid);
-			if (0 == eap_keep_alive(skfd, (struct sockaddr*)&ll)) {
-				printf("[KPALV] Server maybe not need keep alive paket.\n");
-				printf("[KPALV] Now, keep alive process quit!\n");
-			}
-			ftruncate(fileno(kpalvpid), 0);
-			fprintf(kpalvpid, "-1");	/* 写入-1表示已经离开 */
-			fflush(kpalvpid);
-			fclose(kpalvpid);
+		if (0 != eap_daemon(skfd, (struct sockaddr*)&ll)) {
+			printf("[ERROR] Creat daemon process to keep alive error!\n");
 			close(skfd);
+			exit(1);
 		}
 		exit(0);
 		break;
 	case -1:
-		printf("[WARN] Cant create daemon, maybe offline after soon.\n");
+		printf("[WARN] Cant create daemon, maybe `OFFLINE` after soon.\n");
 	}
 	close(skfd);
 	return 0;

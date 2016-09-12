@@ -76,8 +76,7 @@ static GtkWidget* drcom_toggles_new(void);
 static GtkWidget* drcom_buttons_new(void);
 static GtkWidget* drcom_statusbar_new(void);
 
-static int try_smart_login(char const *uname, char const *pwd,
-        int (*sucess_handle)(void const*), void const *args);
+static int try_smart_login(char const *uname, char const *pwd);
 
 /* 初始化主界面win */
 int drcom_gui_init(GtkWindow *win)
@@ -175,7 +174,7 @@ static void login_cbk(GtkWidget *widget, gpointer statubar)
     
     if (!chose_if) {
         /* 需要手动选择网卡 */
-        if (0 != try_smart_login(uname, pwd, NULL, NULL)) {
+        if (0 != try_smart_login(uname, pwd)) {
             /* TODO 显示网卡错误弹出窗口 */
             _M("can't choose net interface cleverly!\n");
         } else {
@@ -183,7 +182,7 @@ static void login_cbk(GtkWidget *widget, gpointer statubar)
         }
         return ;
     }
-    int stat = eaplogin(uname, pwd, NULL, NULL);
+    int stat = eaplogin(uname, pwd);
     /* 选择了网卡，但是登录失败 */
     switch (stat) {
         case 1:
@@ -530,8 +529,7 @@ static GtkWidget* drcom_statusbar_new(void)
 
     return box;
 }
-static int try_smart_login(char const *uname, char const *pwd,
-        int (*sucess_handle)(void const*), void const *args)
+static int try_smart_login(char const *uname, char const *pwd)
 {
     iflist_t ifs[IFS_MAX];
     int ifs_max = IFS_MAX;
@@ -545,7 +543,7 @@ static int try_smart_login(char const *uname, char const *pwd,
 #endif
           );
         setifname(ifs[i].name);
-        if (0 == eaplogin(uname, pwd, NULL, NULL))
+        if (0 == eaplogin(uname, pwd))
             return 0;
     }
     return 1;

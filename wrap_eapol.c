@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <pcap.h>
 #include "wrap_eapol.h"
-#include "type.h"
+#include "common.h"
 #include "eapol.h"
 
 
@@ -27,7 +27,7 @@ static int is_filter(char const *ifname)
 		"ifb", "gre", "teql",
 		"br", "imq"
     };
-	int i;
+	unsigned int i;
     for (i = 0; i < ARRAY_SIZE(filter); ++i) {
         if (strstr(ifname, filter[i]))
             return 1;
@@ -81,7 +81,7 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
     /* 略过开始两行 */
     fgets(buff, BUFF_LINE_MAX, fd);
     fgets(buff, BUFF_LINE_MAX, fd);
-    while (0 < fgets(buff, BUFF_LINE_MAX, fd)) {
+    while (NULL != fgets(buff, BUFF_LINE_MAX, fd)) {
         name = get_ifname_from_buff(buff);
         _D("%s\n", name);
         /* 过滤无关网络接口 */

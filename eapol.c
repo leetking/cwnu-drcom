@@ -1,5 +1,5 @@
 #include "eapol.h"
-#include "type.h"
+#include "common.h"
 #include "md5.h"
 
 #include <netinet/if_ether.h>
@@ -95,19 +95,15 @@ static int eapol_init(int *skfd, struct sockaddr *skaddr)
 		goto addr_err;
 	}
 	skllp->sll_ifindex = ifr.ifr_ifindex;
-#ifdef DEBUG
-	printf("%s's index: %d\n", ifname, skllp->sll_ifindex);
-#endif
+    _D("%s's index: %d\n", ifname, skllp->sll_ifindex);
 	if (-1 == ioctl(*skfd, SIOCGIFHWADDR, &ifr)) {
 		perror("Get MAC");
 		goto addr_err;
 	}
 	memcpy(client_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-#ifdef DEBUG
-	printf("%s's MAC: %02X-%02X-%02X-%02X-%02X-%02X\n", ifname,
+	_D("%s's MAC: %02X-%02X-%02X-%02X-%02X-%02X\n", ifname,
 			client_mac[0],client_mac[1],client_mac[2],
 			client_mac[3],client_mac[4],client_mac[5]);
-#endif
 	/* TODO 这里每个字段的含义 */
 	skllp->sll_family = PF_PACKET;	
 	/*skllp->sll_protocol = ETH_P_ARP;*/
@@ -162,23 +158,20 @@ static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
 			if (recveap->code == EAP_CODE_REQ
 					&& recveap->type == EAP_TYPE_MD5) {
 #ifdef DEBUG
-				int i;
-				printf("id: %d\n", sendeap->id);
-				printf("md5: ");
-				for (i = 0; i < recveapbody->md5size; ++i)
-					printf("%.2x", recveapbody->md5value[i]);
-				printf("\n");
-				printf("ex-md5: ");
-				for (i = 0; i < ntohs(recveap->len) - recveapbody->md5size - 2; ++i)
-					printf("%.2x", recveapbody->md5exdata[i]);
-				printf("\n");
+				_M("id: %d\n", sendeap->id);
+				_M("md5: ");
+				for (int i = 0; i < recveapbody->md5size; ++i)
+					_M("%.2x", recveapbody->md5value[i]);
+				_M("\n");
+				_M("ex-md5: ");
+				for (int i = 0; i < ntohs(recveap->len) - recveapbody->md5size - 2; ++i)
+					_M("%.2x", recveapbody->md5exdata[i]);
+				_M("\n");
 #endif
 				return 0;
 			} else if (recveap->id == sendeap->id
 					&& recveap->code == EAP_CODE_FAIL) {
-#ifdef DEBUG
-				printf("id: %d fail.\n", sendeap->id);
-#endif
+				_D("id: %d fail.\n", sendeap->id);
 				return -2;
 			}
 		}
@@ -201,15 +194,11 @@ static int filte_success(int skfd, struct sockaddr const *skaddr)
 				&& recveapol->type == EAPOL_PACKET ) {
 			if (recveap->id == sendeap->id
 					&& recveap->code == EAP_CODE_SUCS) {
-#ifdef DEBUG
-				printf("id: %d login success.\n", sendeap->id);
-#endif
+				_D("id: %d login success.\n", sendeap->id);
 				return 0;
 			} else if (recveap->id == sendeap->id
 					&& recveap->code == EAP_CODE_FAIL) {
-#ifdef DEBUG
-				printf("id: %d fail.\n", sendeap->id);
-#endif
+				_D("id: %d fail.\n", sendeap->id);
 				return -2;
 			}
 		}
@@ -299,13 +288,9 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
 	for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
 		status = filte_req_identity(skfd, skaddr);
-#ifdef DEBUG
-		printf("[KPALV] status: %d\n", status);
-#endif
+		_D("[KPALV] status: %d\n", status);
 		if (0 == status) {
-#ifdef DEBUG
-			printf("[KPALV] get a request-identity\n");
-#endif
+			_D("[KPALV] get a request-identity\n");
 			eap_res_identity(skfd, skaddr);
 			stime = time((time_t*)NULL);
 		}
@@ -336,9 +321,7 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 	fseek(kpalvpid, 0L, SEEK_SET);
 	if ((1 == fscanf(kpalvpid, "%d", (int*)&oldpid))
 			&& (oldpid != (pid_t)-1)) {
-#ifdef DEBUG
-		printf("oldkpalv pid: %d\n", oldpid);
-#endif
+		_D("oldkpalv pid: %d\n", oldpid);
 		kill(oldpid, SIGKILL);
 	}
 	setsid();
@@ -347,9 +330,7 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 	umask(0);
 	/* 在/tmp下写入自己(keep alive)pid */
 	pid_t curpid = getpid();
-#ifdef DEBUG
-	printf("kpalv curpid: %d\n", curpid);
-#endif
+	_D("kpalv curpid: %d\n", curpid);
 	if (0 != ftruncate(fileno(kpalvpid), 0))
 		printf("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
 	fprintf(kpalvpid, "%d", curpid);
@@ -386,8 +367,8 @@ int eaplogin(char const *uname, char const *pwd)
 	int skfd;
 	struct sockaddr_ll ll;
 
-	printf("Use user '%s' to login...\n", uname);
-	printf("[0] Initilize interface...\n");
+	_M("Use user '%s' to login...\n", uname);
+	_M("[0] Initilize interface...\n");
 	strncpy(_uname, uname, UNAME_LEN);
 	strncpy(_pwd, pwd, PWD_LEN);
 	pwdlen = strlen(_pwd);
@@ -396,34 +377,34 @@ int eaplogin(char const *uname, char const *pwd)
 	/* 无论如何先请求一下下线 */
 	eapol_logoff(skfd, (struct sockaddr*)&ll);
 	/* eap-start */
-	printf("[1] Send eap-start...\n");
+	_M("[1] Send eap-start...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eapol_start(skfd, (struct sockaddr*)&ll);
 		if (0 == filte_req_identity(skfd, (struct sockaddr*)&ll))
 			break;
-		printf(" [1] %dth Try send eap-start...\n", i+1);
+		_M(" [1] %dth Try send eap-start...\n", i+1);
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
 	/* response-identity */
-	printf("[2] Send response-identity...\n");
+	_M("[2] Send response-identity...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eap_res_identity(skfd, (struct sockaddr*)&ll);
 		state = filte_req_md5clg(skfd, (struct sockaddr*)&ll);
 		if (0 == state) break;
 		else if (-2 == state) goto _no_uname;
-		printf(" [2] %dth Try send response-identity...\n", i+1);
+		_M(" [2] %dth Try send response-identity...\n", i+1);
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
 	/* response-md5clg */
-	printf("[3] Send response-md5clg...\n");
+	_M("[3] Send response-md5clg...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eap_md5_clg(skfd, (struct sockaddr*)&ll);
 		state = filte_success(skfd, (struct sockaddr*)&ll);
 		if (0 == state) break;	/* 登录成功 */
 		else if (-2 == state) goto _pwd_err;
-		printf(" [3] %dth Try send response-md5clg...\n", i+1);
+		_M(" [3] %dth Try send response-md5clg...\n", i+1);
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
@@ -444,15 +425,15 @@ int eaplogin(char const *uname, char const *pwd)
 	return 0;
 
 _timeout:
-	printf("[ERROR] Not server in range.\n");
+	_M("[ERROR] Not server in range.\n");
 	close(skfd);
 	return -2;
 _no_uname:
-	printf("[ERROR] No this user(%s).\n", uname);
+	_M("[ERROR] No this user(%s).\n", uname);
 	close(skfd);
 	return 1;
 _pwd_err:
-	printf("[ERROR] The server refuse to login. Password error.\n");
+	_M("[ERROR] The server refuse to login. Password error.\n");
 	close(skfd);
 	return 4;
 }
@@ -464,20 +445,20 @@ int eaplogoff(void)
 	int state;
 	int i;
 
-	printf("[0] Initilize interface...\n");
+	_M("[0] Initilize interface...\n");
 	if (0 != eapol_init(&skfd, (struct sockaddr*)&ll))
 		return -1;
-	printf("[1] Requset logoff...\n");
+	_M("[1] Requset logoff...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eapol_logoff(skfd, (struct sockaddr*)&ll);
 		state = filte_success(skfd, (struct sockaddr*)&ll);
 		if (-2 == state) {
-			printf("[2] Logoff!\n");
+			_M("[2] Logoff!\n");
 			return 0;
 		}
-		printf(" [1] %dth Try Requset logoff...\n", i+1);
+		_M(" [1] %dth Try Requset logoff...\n", i+1);
 	}
-	printf("[ERROR] Not server in range. or You were logoff.\n");
+	_M("[ERROR] Not server in range. or You were logoff.\n");
 	return -1;
 }
 

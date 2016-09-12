@@ -6,6 +6,7 @@
 #include "eapol.h"
 #include "config.h"
 #include "wrap_eapol.h"
+#include "common.h"
 #ifdef LINUX
 # define _PATH_MAX  PATH_MAX
 # define PATH_SEP   '/'
@@ -76,9 +77,7 @@ static int getconf(char *_uname, char *_pwd)
     char configpath[_PATH_MAX+1];
     if (getexedir(configpath)) return -1;
     strcat(configpath, CONF_PATH);
-#ifdef DEBUG
-    printf("configfile path: %s\n", configpath);
-#endif
+    _D("configfile path: %s\n", configpath);
     FILE *conf = fopen(configpath, "r");
     if (NULL == conf) {
         perror("drcomrc");
@@ -88,10 +87,8 @@ static int getconf(char *_uname, char *_pwd)
     if (0 != getvalue(conf, "pwd", pwd)) return -2;
     strncpy(_uname, uname, UNAME_LEN);
     strncpy(_pwd, pwd, PWD_LEN);
-#ifdef DEBUG
-    printf("uname: %s\n", _uname);
-    printf("pwd: %s\n", _pwd);
-#endif
+    _D("uname: %s\n", _uname);
+    _D("pwd: %s\n", _pwd);
     fclose(conf);
 
     return 0;
@@ -115,14 +112,10 @@ static int getexedir(char *exedir)
 #endif
     if (cnt < 0 || cnt > _PATH_MAX)
         return -1;
-#ifdef DEBUG
-    printf("exedir: %s\n", exedir);
-#endif
+    _D("exedir: %s\n", exedir);
     char *end = strrchr(exedir, PATH_SEP);
     if (!end) return -1;
     *(end+1) = '\0';
-#ifdef DEBUG
-    printf("exedir: %s\n", exedir);
-#endif
+    _D("exedir: %s\n", exedir);
     return 0;
 }

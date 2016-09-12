@@ -1,5 +1,5 @@
-#ifndef _TYPE_H
-#define _TYPE_H
+#ifndef _COMMON_H
+#define _COMMON_H
 
 typedef unsigned char uchar;	/* 一个字节 */
 typedef unsigned short uint16;	/* 两个字节 */
@@ -15,12 +15,24 @@ typedef unsigned int uint32;	/* 四个字节 */
 #define MAX(x, y)	((x)>(y)?(x):(y))
 #define MIN(x, y)	((x)>(y)?(y):(x))
 
-#ifdef DEBUG
-# define _D(...) fprintf(stderr, __VA_ARGS__)
+#undef PRINT
+#ifdef GUI
+# include <glib.h>
+# define PRINT(...) g_print(__VA_ARGS__)
 #else
-# define _D(...) ((void)0)
+# define PRINT(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
-#define _M(...) fprintf(stderr, __VA_ARGS__)
+#ifdef DEBUG
+# define _D(...) \
+    do { \
+        PRINT("%s:%d:", __FILE__, __LINE__); \
+        PRINT(__VA_ARGS__); \
+    } while(0)
+#else
+# define _D(...)    ((void)0)
+#endif
+
+#define _M(...)    PRINT(__VA_ARGS__);
 
 #endif

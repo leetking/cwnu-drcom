@@ -1,7 +1,7 @@
 #ifndef _EAPOL_H
 #define _EAPOL_H
 
-#include "type.h"
+#include "common.h"
 
 #ifdef WINDOWS
 # define ETH_ALEN	(6)
@@ -115,4 +115,5 @@ extern int eaprefresh(char const *uname, char const *pwd);
  * 用来设置ifname
  */
 extern void setifname(char *ifname);
+#undef IDEN_LEN
 #endif

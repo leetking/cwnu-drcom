@@ -2,6 +2,7 @@
 #include "eapol.h"
 #include "md5.h"
 
+#include <windows.h>
 #include <pcap.h>
 #include <packet32.h>		/* 需要连接-lpacket */
 
@@ -367,9 +368,10 @@ extern int eap_daemon(char const *ifname)
     }
     if (NULL == (kpalvfd = freopen(pid_file, "w+", kpalvfd)))
         _M("[KPALV:WARN] truncat pidfile '%s': %s\n", pid_file, strerror(errno));
-    fprintf(kpalvfd, "-1");	/* 写入-1表示已经离开 */
+    fprintf(kpalvfd, "0");	/* 写入0表示已经离开 */
     fflush(kpalvfd);
     fclose(kpalvfd);
+    pcap_close(skfd);
 
     return 0;
 }

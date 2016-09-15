@@ -12,7 +12,7 @@ typedef unsigned int uint32;	/* 四个字节 */
 #define PWD_LEN		(32)
 
 #ifdef LINUX
-# include <unistd.h>
+# include <linux/limits.h>
 # include <netinet/if_ether.h>
 # include <net/if.h>
 # define EXE_PATH_MAX   (PATH_MAX+1)

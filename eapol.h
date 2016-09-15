@@ -17,8 +17,8 @@
 #define TRY_TIMES	(3)
 #define TIMEOUT		(3)
 
-/* 最多16个接口 */
-#define IFS_MAX		(16)
+/* 最多32个接口 */
+#define IFS_MAX		(32)
 
 /* ethii层取0x888e表示上层是8021.x */
 #define ETHII_8021X	(0x888e)

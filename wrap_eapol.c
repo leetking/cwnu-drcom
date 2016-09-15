@@ -2,7 +2,6 @@
 #include "common.h"
 #include "eapol.h"
 
-
 extern int try_smart_login(char const *uname, char const *pwd)
 {
     iflist_t ifs[IFS_MAX];

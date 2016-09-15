@@ -11,8 +11,8 @@
 /* eap 在EAP_KPALV_TIMEOUT秒内没有回应，认为不需要心跳 */
 #define EAP_KPALV_TIMEOUT	(420)	/* 7分钟 */
 
-/* 最多16个接口 */
-#define IFS_MAX		(16)
+/* 最多32个接口 */
+#define IFS_MAX		(32)
 
 /* ethii层取0x888e表示上层是8021.x */
 #define ETHII_8021X	(0x888e)

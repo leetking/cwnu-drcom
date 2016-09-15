@@ -29,12 +29,13 @@ CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
 CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH) -DGUI
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
-CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
+CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused -pg
+LDFLAGS_DEBUG	:= -pg
 CFLAGS_RELEASE	:= -O2 -W -Wall
 
 OBJS	:= md5.o config.o common.o
 CFLAGS	:= -DCONF_PATH=$(CONFIG)
-LDFLAGS :=
+LDFLAGS := -pg
 
 ifeq ($(TARGET), WIN)
 	CFLAGS += $(CFLAGS_WIN)
@@ -51,6 +52,7 @@ endif
 
 ifeq ($(IS_DEBUG), DEBUG)
 	CFLAGS += $(CFLAGS_DEBUG)
+	LDFLAGS += $(LDFLAGS_DEBUG)
 else
 	CFLAGS += $(CFLAGS_RELEASE)
 endif

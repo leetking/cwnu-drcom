@@ -48,19 +48,6 @@ static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr);
 static int filte_success(int skfd, struct sockaddr const *skaddr);
 static int eap_daemon(int skfd, struct sockaddr const *skaddr);
 
-/* 比较两个mac是否相等 */
-static int mac_equal(uchar *mac1, uchar *mac2)
-{
-	uint32 a1 = *(uint32*)mac1;
-	uint32 a2 = *(uint32*)mac2;
-	uint32 b1 = *(uint32*)(mac1+4);
-	uint32 b2 = *(uint32*)(mac2+4);
-	if (a1 == a2 && b1 == b2)
-		return 0;
-
-	return 1;
-}
-
 /*
  * 初始化缓存区，生产套接字和地址接口信息
  * skfd: 被初始化的socket
@@ -278,11 +265,9 @@ static int eap_md5_clg(int skfd, struct sockaddr const *skaddr)
  * 某些eap实现需要心跳或多次认证
  * 目前有些服务器会有如下特征
  * 每一分钟，服务端发送一个request-identity包来判断是否在线
- * 请求三次
  */
 static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 {
-#define EAP_KPALV_TIMEOUT	(420)	/* 7分钟 */
 	int status;
 	time_t stime = time((time_t*)NULL);
 	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
@@ -307,43 +292,41 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 {
 	/* 如果存在原来的keep alive进程，就干掉他 */
 #define PID_FILE	"/tmp/cwnu-drcom.pid"
-	FILE *kpalvpid = fopen(PID_FILE, "r+");
-	if (NULL == kpalvpid) {
-		printf("[KPALV] No process pidfile. %s: %s\n", PID_FILE, strerror(errno));
-		kpalvpid = fopen(PID_FILE, "w+"); /* 不存在，创建 */
-		if (NULL == kpalvpid) {
-			perror(PID_FILE);
-			printf("[KPALV] Detect pid file eror! quit!\n");
+	FILE *kpalvfd = fopen(PID_FILE, "r+");
+	if (NULL == kpalvfd) {
+		_M("[KPALV] No process pidfile. %s: %s\n", PID_FILE, strerror(errno));
+		kpalvfd = fopen(PID_FILE, "w+"); /* 不存在，创建 */
+		if (NULL == kpalvfd) {
+			_M("[KPALV] Detect pid file eror(%s)! quit!\n", strerror(errno));
 			return -1;
 		}
 	}
 	pid_t oldpid;
-	fseek(kpalvpid, 0L, SEEK_SET);
-	if ((1 == fscanf(kpalvpid, "%d", (int*)&oldpid))
-			&& (oldpid != (pid_t)-1)) {
+	fseek(kpalvfd, 0L, SEEK_SET);
+	if ((1 == fscanf(kpalvfd, "%d", (int*)&oldpid)) && (oldpid != (pid_t)-1)) {
 		_D("oldkpalv pid: %d\n", oldpid);
 		kill(oldpid, SIGKILL);
 	}
 	setsid();
 	if (0 != chdir("/"))
-		printf("[KPALV:WARN] %s\n", strerror(errno));
+		_M("[KPALV:WARN] %s\n", strerror(errno));
 	umask(0);
 	/* 在/tmp下写入自己(keep alive)pid */
 	pid_t curpid = getpid();
 	_D("kpalv curpid: %d\n", curpid);
-	if (0 != ftruncate(fileno(kpalvpid), 0))
-		printf("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
-	fprintf(kpalvpid, "%d", curpid);
-	fflush(kpalvpid);
+	if (0 != ftruncate(fileno(kpalvfd), 0))
+		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
+	fprintf(kpalvfd, "%d", curpid);
+	fflush(kpalvfd);
 	if (0 == eap_keep_alive(skfd, skaddr)) {
-		printf("[KPALV] Server maybe not need keep alive paket.\n");
-		printf("[KPALV] Now, keep alive process quit!\n");
+		_M("[KPALV] Server maybe not need keep alive paket.\n");
+		_M("[KPALV] Now, keep alive process quit!\n");
 	}
-	if (0 != ftruncate(fileno(kpalvpid), 0))
-		printf("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
-	fprintf(kpalvpid, "-1");	/* 写入-1表示已经离开 */
-	fflush(kpalvpid);
-	fclose(kpalvpid);
+	if (0 != ftruncate(fileno(kpalvfd), 0))
+		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
+	fprintf(kpalvfd, "-1");	/* 写入-1表示已经离开 */
+	fflush(kpalvfd);
+	fclose(kpalvfd);
 
 	return 0;
 }
@@ -412,14 +395,14 @@ int eaplogin(char const *uname, char const *pwd)
 	switch (fork()) {
 	case 0:
 		if (0 != eap_daemon(skfd, (struct sockaddr*)&ll)) {
-			printf("[ERROR] Creat daemon process to keep alive error!\n");
+			_M("[ERROR] Create daemon process to keep alive error!\n");
 			close(skfd);
 			exit(1);
 		}
 		exit(0);
 		break;
 	case -1:
-		printf("[WARN] Cant create daemon, maybe `OFFLINE` after soon.\n");
+		_M("[WARN] Cant create daemon, maybe `OFFLINE` after soon.\n");
 	}
 	close(skfd);
 	return 0;

@@ -3,19 +3,13 @@
 
 #include "common.h"
 
-#ifdef WINDOWS
-# define ETH_ALEN	(6)
-# define IFNAMSIZ	(64)
-# define MTU_MAX	(65536)
-#else
-# include <netinet/if_ether.h>
-# include <net/if.h>
-#endif
-
 #define IDEN_LEN	UNAME_LEN
 
 #define TRY_TIMES	(3)
+/* 每次请求超过TIMEOUT秒，就重新请求一次 */
 #define TIMEOUT		(3)
+/* eap 在EAP_KPALV_TIMEOUT秒内没有回应，认为不需要心跳 */
+#define EAP_KPALV_TIMEOUT	(420)	/* 7分钟 */
 
 /* 最多16个接口 */
 #define IFS_MAX		(16)
@@ -115,5 +109,15 @@ extern int eaprefresh(char const *uname, char const *pwd);
  * 用来设置ifname
  */
 extern void setifname(char *ifname);
+#ifdef WINDOWS
+/*
+ * 由于windows下实现进程的特殊性，这里把eap_daemon导出给main_cli使用
+ * ifname: 心跳的物理接口名字
+ * @return: 0: keep alive 进程正常退出，也许并不需要心跳进程
+ *         !0: 错误原因导致keep alive 进程退出，也许是没法创建进程
+ */
+extern int eap_daemon(char const *ifname);
+#endif /* WINDOWS */
 #undef IDEN_LEN
+
 #endif

@@ -37,18 +37,16 @@ static char _uname[UNAME_LEN];
 static char _pwd[PWD_LEN];
 static int pwdlen;
 
-/* 比较两个mac是否相等 */
-static int mac_equal(uchar *mac1, uchar *mac2)
-{
-    uint32 a1 = *(uint32*)mac1;
-    uint32 a2 = *(uint32*)mac2;
-    uint32 b1 = *(uint32*)(mac1+4);
-    uint32 b2 = *(uint32*)(mac2+4);
-    if (a1 == a2 && b1 == b2)
-        return 0;
-
-    return 1;
-}
+static int fork_eap_daemon();
+static int eap_keep_alive(pcap_t *skfd);
+static int eap_md5_clg(pcap_t *skfd);
+static int eap_res_identity(pcap_t *skfd);
+static int eapol_init(pcap_t **skfd);
+static int eapol_logoff(pcap_t *skfd);
+static int eapol_start(pcap_t *skfd);
+static int filte_req_identity(pcap_t *skfd);
+static int filte_req_md5clg(pcap_t *skfd);
+static int filte_success(pcap_t *skfd);
 
 /*
  * 初始化缓存区，生成接口句柄
@@ -279,19 +277,106 @@ static int eap_md5_clg(pcap_t *skfd)
     pcap_sendpacket(skfd, sendbuff, ETH_ALEN*2+6+5+sizeof(eapbody_t));
     return 0;
 }
-/* 保持在线 */
-static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
+/* 保持在线，实现心跳逻辑 */
+static int eap_keep_alive(pcap_t *skfd)
 {
+    int status;
+    time_t stime = time((time_t*)NULL);
+    for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
+        status = filte_req_identity(skfd);
+        _D("[KPALV] status: %d\n", status);
+        if (0 == status) {
+            _D("[KPALV] get a request-identity\n");
+            eap_res_identity(skfd);
+            stime = time((time_t*)NULL);
+        }
+    }
+    return 0;
+}
+/* 负责创建心跳进程，并启动它 */
+static int fork_eap_daemon(void)
+{
+    char exe[EXE_PATH_MAX];
+    int cnt = GetModuleFileName(NULL, exe, EXE_PATH_MAX);
+    if (cnt < 0 || cnt >= EXE_PATH_MAX)
+        return -1;
+    _D("exename: %s\n", exe);
+    int rest = EXE_PATH_MAX-strlen(exe);
+    strncat(exe, " -k ", rest);
+    rest -= 4;  /* strlen(" -k "); */
+    _D("exename: %s\n", exe);
+    strncat(exe, ifname, rest);
+    _D("exename: %s\n", exe);
+    STARTUPINFO sinfo;
+    PROCESS_INFORMATION pinfo;
+    ZeroMemory(&sinfo, sizeof(sinfo));
+    ZeroMemory(&pinfo, sizeof(pinfo));
+    if (!CreateProcess(NULL, exe, NULL, NULL, 0, CREATE_NO_WINDOW, NULL, NULL, &sinfo, &pinfo)) {
+        _D("create child error!\n");
+        return -1;
+    }
+    CloseHandle(pinfo.hProcess);
+    CloseHandle(pinfo.hThread);
+    _D("create child process success!\n");
+
+    return 0;
+}
+extern int eap_daemon(char const *ifname)
+{
+    pcap_t *skfd;
+    setifname((char*)ifname);
+    if (0 != eapol_init(&skfd))
+        return -1;
+    char pid_file[EXE_PATH_MAX];
+    if (0 != getexedir(pid_file)) {
+        _M("[KPALV] get currently path error!\n");
+        return -1;
+    }
+    int rest = EXE_PATH_MAX-strlen(pid_file);
+    strncat(pid_file, "cwnu-drcom.pid", rest);
+    _D("pid_file: %s\n", pid_file);
+    FILE *kpalvfd = fopen(pid_file, "r+");
+    if (NULL == kpalvfd) {
+        _M("[KPALV] No process pidfile. %s: %s\n", pid_file, strerror(errno));
+        kpalvfd = fopen(pid_file, "w+"); /* 不存在，创建 */
+        if (NULL == kpalvfd) {
+            _M("[KPALV] Detect pid file eror(%s)! quit!\n", strerror(errno));
+            return -1;
+        }
+    }
+
+#define pid_t DWORD
+    pid_t oldpid;
+    fseek(kpalvfd, 0L, SEEK_SET);
+    if ((1 == fscanf(kpalvfd, "%lu", (unsigned long*)&oldpid)) && (oldpid != (pid_t)-1)) {
+        _D("oldkpalv pid: %lu\n", oldpid);
+        HANDLE hp = OpenProcess(PROCESS_TERMINATE, 0, oldpid);
+        TerminateProcess(hp, 0);
+    }
+	/* 在可执行程序所在目录下写入自己(keep alive)pid */
+    pid_t curpid = GetCurrentProcessId();
+    _D("kpalv curpid: %lu\n", curpid);
+    /* 使用ansi c的方式使pid_file里的内容被截断为0 */
+    if (NULL == (kpalvfd = freopen(pid_file, "w+", kpalvfd)))
+        _M("[KPALV:WARN] truncat pidfile '%s': %s\n", pid_file, strerror(errno));
+    fprintf(kpalvfd, "%lu", curpid);
+    fflush(kpalvfd);
+    if (0 == eap_keep_alive(skfd)) {
+        _M("[KPALV] Server maybe not need keep alive paket.\n");
+        _M("[KPALV] Now, keep alive process quit!\n");
+    }
+    if (NULL == (kpalvfd = freopen(pid_file, "w+", kpalvfd)))
+        _M("[KPALV:WARN] truncat pidfile '%s': %s\n", pid_file, strerror(errno));
+    fprintf(kpalvfd, "-1");	/* 写入-1表示已经离开 */
+    fflush(kpalvfd);
+    fclose(kpalvfd);
+
     return 0;
 }
 /*
  * eap认证
  * uname: 用户名
  * pwd: 密码
- * sucess_handle: 认证成功之后调用下一步认证
- * args: sucess_handle需要的参数
- * 如果不需要继续认证，sucess_handle为NULL
- * 如果sucess_handle不需要参数，args为NULL
  * @return: 0: 成功
  *          1: 用户不存在
  *          2: 密码错误
@@ -301,8 +386,7 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
  *          -2: 没有找到服务器
  */
 
-int eaplogin(char const *uname, char const *pwd,
-        int (*sucess_handle)(void const*), void const *args)
+int eaplogin(char const *uname, char const *pwd)
 {
     int i;
     int state;
@@ -348,23 +432,30 @@ int eaplogin(char const *uname, char const *pwd,
     }
     if (i >= TRY_TIMES) goto _timeout;
 
-    /* TODO 登录成功,然后呢？ */
+    /* 登录成功创建后台心跳进程 */
+    if (0 != fork_eap_daemon()) {
+        _M("[ERROR] Create daemon process to keep alive error!\n");
+        exit(1);
+    }
+    pcap_close(skfd);
     return 0;
 
 _timeout:
     _M("[ERROR] Not server in range.\n");
+    pcap_close(skfd);
     return -2;
 _no_uname:
     _M("[ERROR] No this user(%s).\n", uname);
+    pcap_close(skfd);
     return 1;
 _pwd_err:
     _M("[ERROR] The server refuse to login. Password error.\n");
+    pcap_close(skfd);
     return 4;
 }
-int eaprefresh(char const *uname, char const *pwd,
-        int (*sucess_handle)(void const*), void const *args)
+int eaprefresh(char const *uname, char const *pwd)
 {
-    return eaplogin(uname, pwd, sucess_handle, args);
+    return eaplogin(uname, pwd);
 }
 int eaplogoff(void)
 {
@@ -386,6 +477,7 @@ int eaplogoff(void)
         _M(" [1] %dth Try Requset logoff...\n", i+1);
     }
     _M("[ERROR] Not server in range. or You were logoff.\n");
+    pcap_close(skfd);
     return -1;
 }
 void setifname(char *_ifname)

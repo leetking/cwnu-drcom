@@ -2,19 +2,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
-#include <unistd.h>
 #include "eapol.h"
 #include "config.h"
 #include "wrap_eapol.h"
 #include "common.h"
-#ifdef LINUX
-# define _PATH_MAX  PATH_MAX
-# define PATH_SEP   '/'
-#elif defined(WINDOWS)
-# include <windows.h>
-# define _PATH_MAX  MAX_PATH
-# define PATH_SEP   '\\'
-#endif
 
 /*
  * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
@@ -24,13 +15,6 @@
  */
 static int getconf(char *uname, char *pwd);
 static void help(int argc, char **argv);
-/*
- * 获取程序所在的目录
- * exedir: 返回目录
- * @return: 0: 成功
- *         !0: 失败
- */
-static int getexedir(char *exedir);
 
 int main(int argc, char **argv)
 {
@@ -38,23 +22,54 @@ int main(int argc, char **argv)
 	char pwd[PWD_LEN];
 
 	char islogoff = 0;
+    char iskpalv = 0;
+#ifdef WINDOWS
+    char kpalv_if[IFNAMSIZ];
+#endif
 
-	if (argc == 2) {
-		if (0 == strcmp("-l", argv[1]) || 0 == (strcmp("-L", argv[1])))
-			islogoff = 1;
-		else if (0 == strcmp("-h", argv[1])) {
-			help(argc, argv);
-			return 0;
-		}
-	}
-	if (0 != getconf(uname, pwd)) {
-		fprintf(stderr, "Not configure.\n");
-		return 1;
-	}
-	if (islogoff) {
-		eaplogoff();
-		return 0;
-	}
+	if (argc >= 2) {
+        if (0 == strcmp("-l", argv[1]) || 0 == (strcmp("-L", argv[1]))) {
+            islogoff = 1;
+        } else if (0 == strcmp("-h", argv[1])) {
+            help(argc, argv);
+            return 0;
+        } else if (0 == strcmp("-k", argv[1])) {
+            /*
+             * -k选项让这个程序作为心跳程序运行。
+             * -k ifname
+             * e.g. -k \Device\NPF_{AEDD3BFA-33D3-4B29-B1FC-0B82C65E42D3}
+             * 对于外部使用这个命令行，不能让他们知道，
+             * 这个只有在windows下才有效
+             */
+            if (NULL == argv[2])
+                goto _cant_eap_daemon;
+            strncpy(kpalv_if, argv[2], IFNAMSIZ);
+            _D("kpalv_if: %s\n", kpalv_if);
+            iskpalv = 1;
+        }
+    }
+    if (0 != getconf(uname, pwd)) {
+        fprintf(stderr, "Not configure.\n");
+        return 1;
+    }
+#ifdef WINDOWS
+    /* windows下作为心跳进程运行的代码 */
+    if (iskpalv) {
+        if (0 != eap_daemon(kpalv_if))
+            goto _cant_eap_daemon;
+
+        /* 正常退出 */
+        return 0;
+        /* 异常退出 */
+_cant_eap_daemon:
+        _M("[ERROR] Create daemon process to keep alive error!\n");
+        return 1;
+    }
+#endif
+    if (islogoff) {
+        eaplogoff();
+        return 0;
+    }
 
     switch (try_smart_login(uname, pwd)) {
         case 0: printf("Login success!!\n"); break;
@@ -74,7 +89,7 @@ static int getconf(char *_uname, char *_pwd)
 {
     char uname[MAX(RECORD_LEN, UNAME_LEN)];
     char pwd[MAX(RECORD_LEN, PWD_LEN)];
-    char configpath[_PATH_MAX+1];
+    char configpath[EXE_PATH_MAX+sizeof(CONF_PATH)];
     if (getexedir(configpath)) return -1;
     strcat(configpath, CONF_PATH);
     _D("configfile path: %s\n", configpath);
@@ -97,25 +112,10 @@ static int getconf(char *_uname, char *_pwd)
 static void help(int argc, char **argv)
 {
     (void)argc;
-    printf("Usage: %s -r|h|l\n", argv[0]);
-    printf("      -r: relogin.\n");
-    printf("      -l: logoff.\n");
-    printf("      -h: show this help page.\n");
-    printf("NOTE: you must need root to login.\n");
+    _M("Usage: %s -r|h|l\n", argv[0]);
+    _M("      -r: relogin.\n");
+    _M("      -l: logoff.\n");
+    _M("      -h: show this help page.\n");
+    _M("NOTE: you must need root to login.\n");
 }
-static int getexedir(char *exedir)
-{
-#ifdef LINUX
-    int cnt = readlink("/proc/self/exe", exedir, _PATH_MAX+1);
-#elif defined(WINDOWS)
-    int cnt = GetModuleFileName(NULL, exedir, _PATH_MAX+1);
-#endif
-    if (cnt < 0 || cnt > _PATH_MAX)
-        return -1;
-    _D("exedir: %s\n", exedir);
-    char *end = strrchr(exedir, PATH_SEP);
-    if (!end) return -1;
-    *(end+1) = '\0';
-    _D("exedir: %s\n", exedir);
-    return 0;
-}
+

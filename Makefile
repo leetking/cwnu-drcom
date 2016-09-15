@@ -8,13 +8,13 @@ MKDIR := mkdir -p
 
 #编译选项在这里修改
 #TARGET只可以取WIN, LINUX几个选项
-TARGET := LINUX
+TARGET := WIN
 #如果是, 就取DEBUG，否则就是空
 IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
-IS_GUI := 
+IS_GUI :=
 
-VERSION := 0.0.1
+VERSION := 0.0.3
 CONFIG	 := \"./drcomrc\"
 ifneq "$(IS_GUI)" ""
 	RES := resource
@@ -29,7 +29,7 @@ LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
 CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
 CFLAGS_RELEASE	:= -O2 -W -Wall
 
-OBJS	:= md5.o config.o
+OBJS	:= md5.o config.o common.o
 CFLAGS	:= -DCONF_PATH=$(CONFIG)
 LDFLAGS :=
 
@@ -39,7 +39,6 @@ ifeq ($(TARGET), WIN)
 	OBJS += eapol_win.o
 	WIN_DLLS := win_dlls
 ifeq "$(IS_GUI)" ""
-	NETIF_CONFIG := netif-config
 	LDFLAGSS_GUI += -mwindows
 endif #IS_GUI
 else
@@ -61,7 +60,7 @@ else
 	OBJS += main_cli.o wrap_eapol.o
 endif
 
-all: drcom $(NETIF_CONFIG)
+all: drcom
 
 drcom: $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -79,7 +78,7 @@ tar: *.c *.h drcomrc.example Makefile $(RES)
 
 #打包编译好的程序
 release: all drcomrc.example $(RES) $(WIN_DLLS) $(APP)
-	$(CP) drcom drcomrc.example $(NETIF_CONFIG) $(APP)
+	$(CP) drcom drcomrc.example $(APP)
 	zip -r $(APP).zip $(APP)
 $(APP):
 	if [ ! -e $(APP) ]; then \
@@ -87,8 +86,12 @@ $(APP):
 	fi
 $(RES): $(APP)
 	$(CP) $(RES) $(APP)
-$(WIN_DLLS): $(APP)
-	$(CP) -L `ldd drcom $(NETIF_CONFIG)| grep -E '/mingw32|/usr|/lib|packet.dll|wpcap.dll' | awk '{print $$3}' | sort | uniq` $(APP)
+$(WIN_DLLS): $(APP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt
+	dlls= `ldd drcom | grep -E '/mingw32|/usr|/lib' | awk '{print $$3}' | sort | uniq`
+	if [ ${dlls} ]; then \
+		$(CP) -L ${dlls} $(APP); \
+	fi
+	$(CP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt $(APP)
 
 help:
 	@echo "make help|all|release|tar|dist-clean"

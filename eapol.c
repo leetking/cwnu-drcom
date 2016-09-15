@@ -36,7 +36,6 @@ static char _uname[UNAME_LEN];
 static char _pwd[PWD_LEN];
 static int pwdlen;
 
-static int mac_equal(uchar *mac1, uchar *mac2);
 static int eap_keep_alive(int skfd, struct sockaddr const *skaddr);
 static int eap_md5_clg(int skfd, struct sockaddr const *skaddr);
 static int eap_res_identity(int skfd, struct sockaddr const *skaddr);
@@ -112,6 +111,7 @@ addr_err:
  */
 static int filte_req_identity(int skfd, struct sockaddr const *skaddr)
 {
+	(void)skaddr;
 	int stime = time((time_t*)NULL);
 	for (; difftime(time((time_t*)NULL), stime) <= TIMEOUT;) {
 		/* TODO 看下能不能只接受某类包，包过滤 */
@@ -135,6 +135,7 @@ static int filte_req_identity(int skfd, struct sockaddr const *skaddr)
  */
 static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
 {
+	(void)skaddr;
 	int stime = time((time_t*)NULL);
 	for (; difftime(time((time_t*)NULL), stime) <= TIMEOUT;) {
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);
@@ -174,6 +175,7 @@ static int filte_req_md5clg(int skfd, struct sockaddr const *skaddr)
  */
 static int filte_success(int skfd, struct sockaddr const *skaddr)
 {
+	(void)skaddr;
 	int stime = time((time_t*)NULL);
 	for (; difftime(time((time_t*)NULL), stime) <= TIMEOUT;) {
 		recvfrom(skfd, recvbuff, BUFF_LEN, 0, NULL, NULL);

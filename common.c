@@ -2,8 +2,9 @@
  * 一些通用的代码
  */
 #include <string.h>
-#include "common.h"
 #include <stdlib.h>
+#include <ctype.h>
+#include "common.h"
 
 #ifdef LINUX
 # include <unistd.h>

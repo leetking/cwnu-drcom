@@ -22,8 +22,8 @@ int main(int argc, char **argv)
 	char pwd[PWD_LEN];
 
 	char islogoff = 0;
-    char iskpalv = 0;
 #ifdef WINDOWS
+    char iskpalv = 0;
     char kpalv_if[IFNAMSIZ];
 #endif
 
@@ -33,7 +33,9 @@ int main(int argc, char **argv)
         } else if (0 == strcmp("-h", argv[1])) {
             help(argc, argv);
             return 0;
-        } else if (0 == strcmp("-k", argv[1])) {
+        }
+#ifdef WINDOWS
+		if (0 == strcmp("-k", argv[1])) {
             /*
              * -k选项让这个程序作为心跳程序运行。
              * -k ifname
@@ -47,11 +49,13 @@ int main(int argc, char **argv)
             _D("kpalv_if: %s\n", kpalv_if);
             iskpalv = 1;
         }
+#endif
     }
     if (0 != getconf(uname, pwd)) {
         fprintf(stderr, "Not configure.\n");
         return 1;
     }
+
 #ifdef WINDOWS
     /* windows下作为心跳进程运行的代码 */
     if (iskpalv) {
@@ -66,6 +70,7 @@ _cant_eap_daemon:
         return 1;
     }
 #endif
+
     if (islogoff) {
         eaplogoff();
         return 0;

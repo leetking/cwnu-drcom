@@ -1,9 +1,9 @@
-CC := gcc
+#CC := gcc
 #针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
 #MIPS MSB
 #CC := mips-openwrt-linux-gcc
 #MIPS LSB
-#CC := mipsel-openwrt-linux-gcc
+CC := mipsel-openwrt-linux-gcc
 
 RM := rm -rf
 CP := cp -r
@@ -11,7 +11,7 @@ MKDIR := mkdir -p
 
 #编译选项在这里修改
 #TARGET只可以取WIN, LINUX几个选项
-TARGET := WIN
+TARGET := LINUX
 #如果是, 就取DEBUG，否则就是空
 IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
@@ -29,13 +29,20 @@ CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
 CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH) -DGUI
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
-CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused -pg
-LDFLAGS_DEBUG	:= -pg
+CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
+LDFLAGS_DEBUG	:=
 CFLAGS_RELEASE	:= -O2 -W -Wall
 
 OBJS	:= md5.o config.o common.o
 CFLAGS	:= -DCONF_PATH=$(CONFIG)
-LDFLAGS := -pg
+LDFLAGS :=
+
+ifeq ($(CC), gcc)
+ifneq "$(IS_DEBUG)" ""
+	CFLAGS_DEBUG += -pg
+	LDFLAGS_DEBUG += -pg
+endif
+endif
 
 ifeq ($(TARGET), WIN)
 	CFLAGS += $(CFLAGS_WIN)

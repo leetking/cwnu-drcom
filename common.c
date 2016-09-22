@@ -56,7 +56,8 @@ static int is_filter(char const *ifname)
 		/* linux */
 		"lo", "wlan", "vboxnet",
 		"ifb", "gre", "teql",
-		"br", "imq"
+		"br", "imq", "ra",
+		"wds", "sit", "apcli",
     };
 	unsigned int i;
     for (i = 0; i < ARRAY_SIZE(filter); ++i) {

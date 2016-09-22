@@ -1,9 +1,9 @@
-#CC := gcc
+CC := gcc
 #针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
 #MIPS MSB
 #CC := mips-openwrt-linux-gcc
 #MIPS LSB
-CC := mipsel-openwrt-linux-gcc
+#CC := mipsel-openwrt-linux-gcc
 
 RM := rm -rf
 CP := cp -r
@@ -54,6 +54,7 @@ ifeq "$(IS_GUI)" ""
 endif #IS_GUI
 else
 	CFLAGS += -DLINUX
+	INSTALL := install
 	OBJS += eapol.o
 endif
 
@@ -104,6 +105,11 @@ $(WIN_DLLS): $(APP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt
 		$(CP) -L ${dlls} $(APP); \
 	fi
 	$(CP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt $(APP)
+$(INSTALL):
+	if [ ! -e dist ]; then \
+		$(MKDIR) dist; \
+	fi
+	$(CP) drcom drcomrc.example dist
 
 help:
 	@echo "make help|all|release|tar|dist-clean"
@@ -112,6 +118,7 @@ help:
 	@echo "     release: Build all src and tar executable binary program & resource files."
 	@echo "     tar: tar src files & resource files."
 	@echo "     dist-clean: clean all exclude original file such as src & 'Makefile'."
+	@echo "     install: install soft to current 'dist' folder. NOTE: just for linux!"
 	@echo "set VARIABLE"
 	@echo "$$ make TARGET=target IS_GUI=gui"
 	@echo "     target: LINUX or WINDOWS"
@@ -122,4 +129,4 @@ clean:
 dist-clean: clean
 	$(RM) cscope.* tags
 	$(RM) $(APP)*
-.PHONY: clean all tar dist-clean release help
+.PHONY: clean all tar dist-clean release help install

@@ -125,7 +125,7 @@ help:
 	@echo "     gui: GUI or empty(don't type it. e.g. 'IS_GUI=')"
 
 clean:
-	$(RM) *.o netif-config.exe netif-config drcom
+	$(RM) *.o netif-config.exe netif-config drcom dist
 dist-clean: clean
 	$(RM) cscope.* tags
 	$(RM) $(APP)*

@@ -105,7 +105,7 @@ $(WIN_DLLS): $(APP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt
 		$(CP) -L ${dlls} $(APP); \
 	fi
 	$(CP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt $(APP)
-$(INSTALL):
+$(INSTALL): drcom
 	if [ ! -e dist ]; then \
 		$(MKDIR) dist; \
 	fi
@@ -127,6 +127,6 @@ help:
 clean:
 	$(RM) *.o netif-config.exe netif-config drcom
 dist-clean: clean
-	$(RM) cscope.* tags
+	$(RM) cscope.* tags dist
 	$(RM) $(APP)*
 .PHONY: clean all tar dist-clean release help install

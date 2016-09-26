@@ -8,7 +8,8 @@ CWNU_DRCOM_PATH=/overlay/cwnu-drcom
 START=99
 
 start() {
-    ${CWNU_DRCOM_PATH}/drcom
+    #dump login-msg to drcom-login.msg file.
+    ${CWNU_DRCOM_PATH}/drcom -d
 }
 restart() {
     ${CWNU_DRCOM_PATH}/drcom -r

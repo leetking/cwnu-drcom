@@ -23,6 +23,11 @@ ifneq "$(IS_GUI)" ""
 	RES := resource
 	ICON_PATH := \"$(RES)/icon.png\"
 endif
+ifeq ($(TARGET), WIN)
+	VERSION := $(VERSION)-win
+else
+	VERSION := $(VERSION)-amd64
+endif
 APP := cwnu-drcom-$(VERSION)
 
 CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
@@ -45,7 +50,6 @@ endif
 endif
 
 ifeq ($(TARGET), WIN)
-	VERSION = $(VERSION)-win
 	CFLAGS += $(CFLAGS_WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
@@ -54,7 +58,6 @@ ifeq "$(IS_GUI)" ""
 	LDFLAGSS_GUI += -mwindows
 endif #IS_GUI
 else
-	VERSION = $(VERSION)-amd64
 	CFLAGS += -DLINUX
 	INSTALL := install
 	OBJS += eapol.o

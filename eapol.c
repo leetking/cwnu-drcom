@@ -273,7 +273,8 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 	int status;
 	time_t stime = time((time_t*)NULL);
 	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
-	for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
+	//for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
+	for (;;) {
 		status = filte_req_identity(skfd, skaddr);
 		if (0 == status) {
 			_M("%s: [KPALV] get a request-identity\n", format_time());
@@ -320,8 +321,8 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 	fprintf(kpalvfd, "%d", curpid);
 	fflush(kpalvfd);
 	if (0 == eap_keep_alive(skfd, skaddr)) {
-		_M("[KPALV] Server maybe not need keep alive paket.\n");
-		_M("[KPALV] Now, keep alive process quit!\n");
+		_M("%s: [KPALV] Server maybe not need keep alive paket.\n", format_time());
+		_M("%s: [KPALV] Now, keep alive process quit!\n", format_time());
 	}
 	if (0 != ftruncate(fileno(kpalvfd), 0))
 		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));

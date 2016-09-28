@@ -26,7 +26,7 @@ endif
 ifeq ($(TARGET), WIN)
 	VERSION := $(VERSION)-win
 else
-	VERSION := $(VERSION)-amd64
+	VERSION := $(VERSION)-linux-amd64
 endif
 APP := cwnu-drcom-$(VERSION)
 

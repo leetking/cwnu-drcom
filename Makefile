@@ -45,6 +45,7 @@ endif
 endif
 
 ifeq ($(TARGET), WIN)
+	VERSION = $(VERSION)-win
 	CFLAGS += $(CFLAGS_WIN)
 	LDFLAGS += $(LDFLAGSS_WIN)
 	OBJS += eapol_win.o
@@ -53,6 +54,7 @@ ifeq "$(IS_GUI)" ""
 	LDFLAGSS_GUI += -mwindows
 endif #IS_GUI
 else
+	VERSION = $(VERSION)-amd64
 	CFLAGS += -DLINUX
 	INSTALL := install
 	OBJS += eapol.o

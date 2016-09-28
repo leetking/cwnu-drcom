@@ -5,7 +5,7 @@ CWNU_DRCOM_PATH=/overlay/cwnu-drcom
 
 #writed for openwrt to implement auto login
 
-START=99
+START=98
 
 start() {
     #dump login-msg to drcom-login.msg file.

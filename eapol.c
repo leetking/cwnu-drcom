@@ -90,7 +90,6 @@ static int eapol_init(int *skfd, struct sockaddr *skaddr)
 	_D("%s's MAC: %02X-%02X-%02X-%02X-%02X-%02X\n", ifname,
 			client_mac[0],client_mac[1],client_mac[2],
 			client_mac[3],client_mac[4],client_mac[5]);
-	/* TODO 这里每个字段的含义 */
 	skllp->sll_family = PF_PACKET;	
 	/*skllp->sll_protocol = ETH_P_ARP;*/
 	/*skllp->sll_ifindex = ? 已给出 */
@@ -276,9 +275,8 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
 	for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
 		status = filte_req_identity(skfd, skaddr);
-		_D("[KPALV] status: %d\n", status);
 		if (0 == status) {
-			_D("[KPALV] get a request-identity\n");
+			_M("%s: [KPALV] get a request-identity\n", format_time());
 			eap_res_identity(skfd, skaddr);
 			stime = time((time_t*)NULL);
 		}

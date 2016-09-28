@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <time.h>
 #include "common.h"
 
 #ifdef LINUX
@@ -156,3 +157,33 @@ extern int getall_ifs(iflist_t *ifs, int *cnt)
     return i;
 }
 
+extern char const *format_time(void)
+{
+	static char buff[FORMAT_TIME_MAX];
+	time_t rawtime;
+	struct tm *timeinfo;
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	if (NULL == timeinfo) return NULL;
+	strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", timeinfo);
+
+	return buff;
+}
+extern int copy(char const *f1, char const *f2)
+{
+	if (NULL == f1 || NULL == f2) return -1;
+	FILE *src, *dst;
+	src = fopen(f1, "r");
+	dst = fopen(f2, "w");
+	if (NULL == src || NULL == dst) return -1;
+	char buff[1024];
+	int n;
+	while (0 < (n = fread(buff, 1, 1024, src)))
+		fwrite(buff, 1, n, dst);
+
+	fclose(src);
+	fclose(dst);
+
+	return 0;
+}

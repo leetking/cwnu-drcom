@@ -285,9 +285,8 @@ static int eap_keep_alive(pcap_t *skfd)
     time_t stime = time((time_t*)NULL);
     for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
         status = filte_req_identity(skfd);
-        _D("[KPALV] status: %d\n", status);
         if (0 == status) {
-            _D("[KPALV] get a request-identity\n");
+            _M("%s: [KPALV] get a request-identity\n", format_time());
             eap_res_identity(skfd);
             stime = time((time_t*)NULL);
         }

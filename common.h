@@ -11,6 +11,8 @@ typedef unsigned int uint32;	/* 四个字节 */
 #define UNAME_LEN	(32)
 #define PWD_LEN		(32)
 
+#define FORMAT_TIME_MAX	(64)
+
 #ifdef LINUX
 # include <linux/limits.h>
 # include <netinet/if_ether.h>
@@ -85,5 +87,23 @@ extern int mac_equal(uchar const *mac1, uchar const *mac2);
  *          -2 cnt过小
  */
 extern int getall_ifs(iflist_t *ifs, int *cnt);
+/*
+ * 获取当前时间按照
+ * yyyy-MM-dd HH:mm:ss
+ * 格式返回
+ * NOTE 不要去修改返回结果，并且不是线程安全的
+ * @return: NULL: 失败
+ *         !NULL: 存储的结果
+ */
+extern char const *format_time(void);
+/*
+ * 简单的复制文件，暂时不进行细致错误检查
+ * NOTE 是绝对路径
+ * scr: 源文件
+ * dst: 目标文件
+ * @return: 0: 成功
+ *         -1: 失败
+ */
+extern int copy(char const *src, char const *dst);
 
 #endif

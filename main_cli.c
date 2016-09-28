@@ -36,13 +36,23 @@ int main(int argc, char **argv)
 			return 0;
 		} else if (0 == strncmp("-d", argv[i], 2)) {
 			char msgfile[] = "./drcom-login.msg";
+			char msgfileback[] = "./drcom-login.msg.back";
 			char msg[EXE_PATH_MAX+sizeof(msgfile)];
+			char msgback[EXE_PATH_MAX+sizeof(msgfileback)];
 			if (0 != getexedir(msg)) {
 				_M("Cant get execute program directory.\n");
 				return 1;
 			}
-			_M("Now, save msg to file `drcom-login.msg`\n");
 			strncat(msg, msgfile, sizeof(msgfile));
+			if (0 != getexedir(msgback)) {
+				_M("Cant get execute program directory.\n");
+				return 1;
+			}
+			strncat(msgback, msgfileback, sizeof(msgfileback));
+			if (0 != copy(msg, msgback)) {
+				_M("WARN: Cant backup msgfile.\n");
+			}
+			_M("Now, save msg to file `drcom-login.msg`\n");
 			freopen(msg, "w", stderr);
 			freopen(msg, "w", stdout);
 		}
@@ -65,7 +75,7 @@ int main(int argc, char **argv)
 	}
 
 	if (0 != getconf(uname, pwd)) {
-		fprintf(stderr, "Not configure.\n");
+		_M("Not configure.\n");
 		return 1;
 	}
 
@@ -90,15 +100,15 @@ _cant_eap_daemon:
 	}
 
 	switch (try_smart_login(uname, pwd)) {
-	case 0: printf("Login success!!\n"); break;
-	case 1: fprintf(stderr, "No this user.\n"); break;
-	case 2: fprintf(stderr, "Password error.\n"); break;
-	case 3: fprintf(stderr, "Timeout.\n"); break;
-	case 4: fprintf(stderr, "Server refuse to login.\n"); break;
-	case -1: fprintf(stderr, "This ethernet can't be used.\n"); break;
-	case -2: fprintf(stderr, "Server isn't in range.\n"); break;
-	case -3: fprintf(stderr, "Can't found ethernet.\n"); break;
-	default: fprintf(stderr, "Other error.\n");
+	case 0: _M("Login success!!\n"); break;
+	case 1: _M("No this user.\n"); break;
+	case 2: _M("Password error.\n"); break;
+	case 3: _M("Timeout.\n"); break;
+	case 4: _M("Server refuse to login.\n"); break;
+	case -1: _M("This ethernet can't be used.\n"); break;
+	case -2: _M("Server isn't in range.\n"); break;
+	case -3: _M("Can't found ethernet.\n"); break;
+	default: _M("Other error.\n");
 	}
 	return 0;
 }

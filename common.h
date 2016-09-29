@@ -53,7 +53,7 @@ typedef struct {
 #ifdef DEBUG
 # define _D(...) \
     do { \
-        PRINT("%s:%d:", __FILE__, __LINE__); \
+        PRINT("%s:%s:%d:", format_time(), __FILE__, __LINE__); \
         PRINT(__VA_ARGS__); \
     } while(0)
 #else

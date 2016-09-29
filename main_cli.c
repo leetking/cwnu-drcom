@@ -53,8 +53,12 @@ int main(int argc, char **argv)
 				_M("WARN: Cant backup msgfile.\n");
 			}
 			_M("Now, save msg to file `drcom-login.msg`\n");
-			freopen(msg, "w", stderr);
-			freopen(msg, "w", stdout);
+			if (NULL == freopen(msg, "w", stderr)) {
+				_M("WARN: Redirect `stderr` error!\n");
+			}
+			if (NULL == freopen(msg, "w", stdout)) {
+				_M("WARN: Redirect `stdout` error!\n");
+			}
 		}
 #ifdef WINDOWS
 		if (0 == strcmp("-k", argv[i])) {

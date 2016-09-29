@@ -271,15 +271,14 @@ static int eap_md5_clg(int skfd, struct sockaddr const *skaddr)
 static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 {
 	int status;
-	time_t stime = time((time_t*)NULL);
 	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
 	//for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
 	for (;;) {
 		status = filte_req_identity(skfd, skaddr);
+		//_D("%s: [KPALV] get status: %d\n", format_time(), status);
 		if (0 == status) {
 			_M("%s: [KPALV] get a request-identity\n", format_time());
 			eap_res_identity(skfd, skaddr);
-			stime = time((time_t*)NULL);
 		}
 	}
 	return 0;

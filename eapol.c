@@ -201,7 +201,8 @@ static int eapol_start(int skfd, struct sockaddr const *skaddr)
 {
 	/* 这里采用eap标记的组播mac地址，也许采用广播也可以吧 */
 	uchar broadcast_mac[ETH_ALEN] = {
-		0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+//		0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	};
 	memcpy(sendethii->dst_mac, broadcast_mac, ETH_ALEN);
 	memcpy(sendethii->src_mac, client_mac, ETH_ALEN);
@@ -216,7 +217,8 @@ static int eapol_start(int skfd, struct sockaddr const *skaddr)
 static int eapol_logoff(int skfd, struct sockaddr const *skaddr)
 {
 	uchar broadcast_mac[ETH_ALEN] = {
-		0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+//		0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	};
 	memcpy(sendethii->dst_mac, broadcast_mac, ETH_ALEN);
 	memcpy(sendethii->src_mac, client_mac, ETH_ALEN);

@@ -20,7 +20,7 @@
 #include <time.h>
 #include <signal.h>
 
-#define BUFF_LEN	(1024)
+#define BUFF_LEN	(512)
 
 static uchar client_mac[ETH_ALEN];
 
@@ -273,19 +273,61 @@ static int eap_md5_clg(int skfd, struct sockaddr const *skaddr)
 static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 {
 	int status;
+	time_t stime, etime;
 	/* EAP_KPALV_TIMEOUT时间内已经不再有心跳包，我们认为服务器不再需要心跳包了 */
 	//for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
+	stime = time((time_t*)NULL);
 	for (;;) {
 		status = filte_req_identity(skfd, skaddr);
 		//_D("%s: [KPALV] get status: %d\n", format_time(), status);
 		if (0 == status) {
+			etime = time((time_t*)NULL);
+			if (difftime(etime, stime) <= 10) {
+				stime = time((time_t*)NULL);
+				_D("dtime: %d\n", difftime(etime, stime));
+				continue;
+			}
+			stime = time((time_t*)NULL);
+#if 0
+#ifdef DEBUG
+			_D("[KPALV] get eap request identity:\n");
+			_D("dst<-src: %2X:%2X:%2X:%2X:%2X:%2X <- %2X:%2X:%2X:%2X:%2X:%2X\n",
+					recvethii->dst_mac[0], recvethii->dst_mac[1], recvethii->dst_mac[2],
+					recvethii->dst_mac[3], recvethii->dst_mac[4], recvethii->dst_mac[5],
+					recvethii->src_mac[0], recvethii->src_mac[1], recvethii->src_mac[2],
+					recvethii->src_mac[3], recvethii->src_mac[4], recvethii->src_mac[5]);
+			_D("ethII.type: 0x%4x\n", ntohs(recvethii->type));
+			_D("recveapol.type: %s\n", recveapol->type==EAPOL_PACKET?"EAPOL_PACKET":"UNKNOWN");
+			_D("recveapol.len: %d\n", ntohs(recveapol->len));
+			_D("recveap.code: %s\n", recveap->code==EAP_CODE_REQ?"EAP_CODE_REQ":"UNKNOWN");
+			_D("recveap.id: %d\n", recveap->id);
+			_D("recveap.type: %s\n", recveap->type==EAP_TYPE_IDEN?"EAP_TYPE_IDEN":"UNKNOWN");
+#endif
+#endif
 			_M("%s: [KPALV] get a request-identity\n", format_time());
 			eap_res_identity(skfd, skaddr);
+#if 0
+#ifdef DEBUG
+			_D("[KPALV] send eap response identity:\n");
+			_D("dst<-src: %2X:%2X:%2X:%2X:%2X:%2X <- %2X:%2X:%2X:%2X:%2X:%2X\n",
+					sendethii->dst_mac[0], sendethii->dst_mac[1], sendethii->dst_mac[2],
+					sendethii->dst_mac[3], sendethii->dst_mac[4], sendethii->dst_mac[5],
+					sendethii->src_mac[0], sendethii->src_mac[1], sendethii->src_mac[2],
+					sendethii->src_mac[3], sendethii->src_mac[4], sendethii->src_mac[5]);
+			_D("ethII.type: 0x%4x\n", ntohs(sendethii->type));
+			_D("sendeapol.type: %s\n", sendeapol->type==EAPOL_PACKET?"EAPOL_PACKET":"UNKNOWN");
+			_D("sendeapol.len: %d\n", ntohs(sendeapol->len));
+			_D("sendeap.code: %s\n", sendeap->code==EAP_CODE_RES?"EAP_CODE_RES":"UNKNOWN");
+			_D("sendeap.id: %d\n", sendeap->id);
+			_D("sendeap.type: %s\n", sendeap->type==EAP_TYPE_IDEN?"EAP_TYPE_IDEN":"UNKNOWN");
+			_D("sendeapbody.identity: %s\n", sendeapbody->identity);
+#endif
+#endif
 		}
+		status = -1;
 	}
 	return 0;
 }
-
 /*
  * 后台心跳进程
  * @return: 0, 正常运行
@@ -305,6 +347,7 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 		}
 	}
 	pid_t oldpid;
+
 	fseek(kpalvfd, 0L, SEEK_SET);
 	if ((1 == fscanf(kpalvfd, "%d", (int*)&oldpid)) && (oldpid != (pid_t)-1)) {
 		_D("oldkpalv pid: %d\n", oldpid);
@@ -317,7 +360,11 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 	/* 在/tmp下写入自己(keep alive)pid */
 	pid_t curpid = getpid();
 	_D("kpalv curpid: %d\n", curpid);
-	if (0 != ftruncate(fileno(kpalvfd), 0))
+	/*
+	 * if (0 != ftruncate(fileno(kpalvfd), 0))
+	 * 这个写法有时不能正常截断文件，截断后前面有\0？
+	 */
+	if (NULL == (kpalvfd = freopen(PID_FILE, "w+", kpalvfd)))
 		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
 	fprintf(kpalvfd, "%d", curpid);
 	fflush(kpalvfd);
@@ -325,7 +372,7 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 		_M("%s: [KPALV] Server maybe not need keep alive paket.\n", format_time());
 		_M("%s: [KPALV] Now, keep alive process quit!\n", format_time());
 	}
-	if (0 != ftruncate(fileno(kpalvfd), 0))
+	if (NULL == (kpalvfd = freopen(PID_FILE, "w+", kpalvfd)))
 		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
 	fprintf(kpalvfd, "-1");	/* 写入-1表示已经离开 */
 	fflush(kpalvfd);

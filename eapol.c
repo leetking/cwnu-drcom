@@ -284,7 +284,7 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 			etime = time((time_t*)NULL);
 			if (difftime(etime, stime) <= 10) {
 				stime = time((time_t*)NULL);
-				_D("dtime: %d\n", difftime(etime, stime));
+				_D("dtime: %f\n", difftime(etime, stime));
 				continue;
 			}
 			stime = time((time_t*)NULL);

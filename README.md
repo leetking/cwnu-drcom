@@ -1,9 +1,6 @@
 # cwnu-drcom
 针对西华师范大学做的一个校园网登录客户端，首要目标是为linux用户提供便利。
 
-目前发现，我们学校好像只需要认证eap而且不需要心跳包就可以了。
-因而这里就先实现eap认证就好了
-
 ## 使用
 直接make就好了
 
@@ -29,11 +26,22 @@
  ```bash
  sudo ./drocm -r
  ```
+4. **记录登录日志**
+ ```bash
+ sudo ./drcom -d
+ ```
 
-4. **帮助**
+5. **帮助**
  ```bash
  ./drcom -h
  ```
+
+## 进度
+- [x] 实现了eap协议，并学校实现eap层的自定义心跳。
+- [x] 自动选择网卡登录
+
+## TODO
+- [ ] 实现drcom协议
 
 ## 下载
 见上方[^](https://github.com/leetking/cwnu-drcom/releases)的`release`页面

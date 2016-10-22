@@ -221,7 +221,8 @@ static int eapol_start(pcap_t *skfd)
 {
     /* 这里采用eap标记的组播mac地址，也许采用广播也可以吧 */
     uchar broadcast_mac[ETH_ALEN] = {
-        0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+        //0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     memcpy(sendethii->dst_mac, broadcast_mac, ETH_ALEN);
     memcpy(sendethii->src_mac, client_mac, ETH_ALEN);
@@ -236,7 +237,8 @@ static int eapol_start(pcap_t *skfd)
 static int eapol_logoff(pcap_t *skfd)
 {
     uchar broadcast_mac[ETH_ALEN] = {
-        0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+        //0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     memcpy(sendethii->dst_mac, broadcast_mac, ETH_ALEN);
     memcpy(sendethii->src_mac, client_mac, ETH_ALEN);
@@ -282,14 +284,23 @@ static int eap_md5_clg(pcap_t *skfd)
 static int eap_keep_alive(pcap_t *skfd)
 {
     int status;
+    time_t stime, etime;
+    stime = time((time_t*)NULL);
     //for (; difftime(time((time_t*)NULL), stime) <= EAP_KPALV_TIMEOUT; ) {
-	for (;;) {
+    for (;;) {
         status = filte_req_identity(skfd);
-		//_D("%s: [KPALV] get status: %d\n", format_time(), status);
         if (0 == status) {
-            _M("%s: [KPALV] get a request-identity\n", format_time());
+            etime = time((time_t*)NULL);
+			_D("dtime: %fs\n", difftime(etime, stime));
+			if (difftime(etime, stime) <= 10) {
+				stime = time((time_t*)NULL);
+				continue;
+			}
+			stime = time((time_t*)NULL);
+			_M("%s: [KPALV] get a request-identity\n", format_time());
             eap_res_identity(skfd);
         }
+        status = -1;
     }
     return 0;
 }
@@ -311,7 +322,13 @@ static int fork_eap_daemon(void)
     PROCESS_INFORMATION pinfo;
     ZeroMemory(&sinfo, sizeof(sinfo));
     ZeroMemory(&pinfo, sizeof(pinfo));
-    if (!CreateProcess(NULL, exe, NULL, NULL, 0, CREATE_NO_WINDOW, NULL, NULL, &sinfo, &pinfo)) {
+    if (!CreateProcess(NULL, exe, NULL, NULL, 0,
+#ifdef DEBUG
+                0,                      /* 心跳进程会把输出打印在终端 */
+#else
+                CREATE_NO_WINDOW,       /* 心跳进程不会把输出打印在终端 */
+#endif
+                NULL, NULL, &sinfo, &pinfo)) {
         _D("create child error!\n");
         return -1;
     }

@@ -43,7 +43,7 @@ CFLAGS	:= -DCONF_PATH=$(CONFIG)
 LDFLAGS :=
 
 ifeq ($(CC), gcc)
-ifneq "$(IS_DEBUG)" ""
+ifeq ($(TARGET), LINUX)
 	CFLAGS_DEBUG += -pg
 	LDFLAGS_DEBUG += -pg
 endif

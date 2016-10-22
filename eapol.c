@@ -282,9 +282,9 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 		//_D("%s: [KPALV] get status: %d\n", format_time(), status);
 		if (0 == status) {
 			etime = time((time_t*)NULL);
+			_D("dtime: %fs\n", difftime(etime, stime));
 			if (difftime(etime, stime) <= 10) {
 				stime = time((time_t*)NULL);
-				_D("dtime: %f\n", difftime(etime, stime));
 				continue;
 			}
 			stime = time((time_t*)NULL);

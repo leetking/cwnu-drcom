@@ -35,7 +35,6 @@ extern void try_smart_logoff(void)
 {
     iflist_t ifs[IFS_MAX];
     int ifs_max = IFS_MAX;
-	int ret = -3;
     if (0 >= getall_ifs(ifs, &ifs_max)) return;
 	int i;
     for (i = 0; i < ifs_max; ++i) {

@@ -8,5 +8,9 @@
  * 自动选择网卡登录
  */
 extern int try_smart_login(char const *uname, char const *pwd);
+/*
+ * 自动选择网卡离线
+ */
+extern void try_smart_logoff(void);
 
 #endif

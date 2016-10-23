@@ -99,7 +99,7 @@ _cant_eap_daemon:
 #endif
 
 	if (islogoff) {
-		eaplogoff();
+		try_smart_logoff();
 		return 0;
 	}
 

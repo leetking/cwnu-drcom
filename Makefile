@@ -18,28 +18,32 @@ IS_DEBUG := DEBUG
 IS_GUI :=
 
 VERSION := 0.0.3.3
-CONFIG	 := \"./drcomrc\"
+CONFIG	 := ./drcomrc
 ifneq "$(IS_GUI)" ""
 	RES := resource
-	ICON_PATH := \"$(RES)/icon.png\"
+	ICON_PATH := $(RES)/icon.png
 endif
 ifeq ($(TARGET), WIN)
 	VERSION := $(VERSION)-win
 else
+ifeq ($(CC), gcc)
 	VERSION := $(VERSION)-linux-amd64
-endif
+else
+	VERSION := $(VERSION)-linux-mips
+endif #CC == gcc
+endif #TARGET == WIN
 APP := cwnu-drcom-$(VERSION)
 
 CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
-CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=$(ICON_PATH) -DGUI
+CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=\"$(ICON_PATH)\" -DGUI
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
 CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
 LDFLAGS_DEBUG	:=
 CFLAGS_RELEASE	:= -O2 -W -Wall
 
 OBJS	:= md5.o config.o common.o
-CFLAGS	:= -DCONF_PATH=$(CONFIG)
+CFLAGS	:= -DCONF_PATH=\"$(CONFIG)\" -DVERSION=\"$(VERSION)\"
 LDFLAGS :=
 
 ifeq ($(CC), gcc)

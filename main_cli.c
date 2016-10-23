@@ -150,5 +150,7 @@ static void help(int argc, char **argv)
 	_M("      -h: show this help page.\n");
 	_M("      -d: dump debug msg to `drcum-login.msg` at current directory.\n");
 	_M("NOTE: you must need root to login.\n");
+	_M("version: %s.\n", VERSION);
+	_M("(C) leetking <li_Tking@163.com>\n");
 }
 

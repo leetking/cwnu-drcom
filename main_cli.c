@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <limits.h>
 #include "eapol.h"
 #include "config.h"
 #include "wrap_eapol.h"
 #include "common.h"
+#include "drcom.h"
+#include "dhcp.h"
 
 /*
  * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
@@ -20,6 +23,7 @@ int main(int argc, char **argv)
 {
 	char uname[UNAME_LEN];
 	char pwd[PWD_LEN];
+	char ifname[IFNAMSIZ];
 
 	char islogoff = 0;
 #ifdef WINDOWS
@@ -86,15 +90,13 @@ int main(int argc, char **argv)
 #ifdef WINDOWS
 	/* windows下作为心跳进程运行的代码 */
 	if (iskpalv) {
-		if (0 != eap_daemon(kpalv_if))
-			goto _cant_eap_daemon;
-
+		if (0 != eap_daemon(kpalv_if)) {
+			/* 异常退出 */
+			_M("[EAP:ERROR] Create daemon process to keep alive error!\n");
+			return 1;
+		}
 		/* 正常退出 */
 		return 0;
-		/* 异常退出 */
-_cant_eap_daemon:
-		_M("[ERROR] Create daemon process to keep alive error!\n");
-		return 1;
 	}
 #endif
 
@@ -103,17 +105,48 @@ _cant_eap_daemon:
 		return 0;
 	}
 
+	/* eap 认证 */
 	switch (try_smart_login(uname, pwd)) {
-	case 0: _M("Login success!!\n"); break;
-	case 1: _M("No this user.\n"); break;
-	case 2: _M("Password error.\n"); break;
-	case 3: _M("Timeout.\n"); break;
-	case 4: _M("Server refuse to login.\n"); break;
-	case -1: _M("This ethernet can't be used.\n"); break;
-	case -2: _M("Server isn't in range.\n"); break;
-	case -3: _M("Can't found ethernet.\n"); break;
-	default: _M("Other error.\n");
+	case 0: _M("[EAP] Login success!!\n"); break;
+	case 1: _M("[EAP] No this user.\n"); return 1;
+	case 2: _M("[EAP] Password error.\n"); return 2;
+	case 3: _M("[EAP] Timeout.\n"); return 3;
+	case 4: _M("[EAP] Server refuse to login.\n"); return 4;
+	case -1: _M("[EAP] This ethernet can't be used.\n"); return 5;
+	case -2: _M("[EAP] Server isn't in range.\n"); return 6;
+	case -3: _M("[EAP] Can't found useable ethernet.\n"); return 7;
+	default: _M("[EAP] Other error.\n"); return 8;
 	}
+
+	/* TODO 使用 dhcp 获取ip, 并绑定到ifname这个接口上 */
+	dhcp_t dhcp;
+	char const *_ifname = getenv("DRCOM_IFNAME");
+	if (NULL == _ifname) {
+		_M("[ERROR] Cant get ifname from environment.\n");
+		return 9;
+	}
+	strncpy(ifname, _ifname, IFNAMSIZ);
+	_D("getenv: %s\n", ifname);
+	dhcp_setif(&dhcp, ifname);
+
+	if (0 != dhcp_run(&dhcp)) {
+		_M("[ERROR] Get locale ip error. Can't connect to server! Network is offline.\n");
+		return 11;
+	}
+
+	/* drcom 心跳 */
+	ipv4_t ip;
+	dhcp_getsip(&dhcp, AF_INET, &ip);
+	char tmp[30];
+	inet_ntop(AF_INET, &ip, tmp, 30);
+	_D("serip: %s\n", tmp);
+	drcom_setifname(ifname);
+	drcom_setserip(tmp);
+	switch (drcom_login(uname, pwd)) {
+	case 0: _M("[DRCOM] Identity success!\n"); break;
+	default: _M("[DRCOM] Other error.\n"); return 10;
+	}
+
 	return 0;
 }
 

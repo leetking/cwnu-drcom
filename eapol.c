@@ -279,7 +279,7 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 	stime = time((time_t*)NULL);
 	for (;;) {
 		status = filte_req_identity(skfd, skaddr);
-		//_D("%s: [KPALV] get status: %d\n", format_time(), status);
+		//_D("%s: [EAP:KPALV] get status: %d\n", format_time(), status);
 		if (0 == status) {
 			etime = time((time_t*)NULL);
 			_D("dtime: %fs\n", difftime(etime, stime));
@@ -304,11 +304,11 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 			_D("recveap.type: %s\n", recveap->type==EAP_TYPE_IDEN?"EAP_TYPE_IDEN":"UNKNOWN");
 #endif
 #endif
-			_M("%s: [KPALV] get a request-identity\n", format_time());
+			_M("%s: [EAP:KPALV] get a request-identity\n", format_time());
 			eap_res_identity(skfd, skaddr);
 #if 0
 #ifdef DEBUG
-			_D("[KPALV] send eap response identity:\n");
+			_D("[EAP:KPALV] send eap response identity:\n");
 			_D("dst<-src: %2X:%2X:%2X:%2X:%2X:%2X <- %2X:%2X:%2X:%2X:%2X:%2X\n",
 					sendethii->dst_mac[0], sendethii->dst_mac[1], sendethii->dst_mac[2],
 					sendethii->dst_mac[3], sendethii->dst_mac[4], sendethii->dst_mac[5],
@@ -336,13 +336,13 @@ static int eap_keep_alive(int skfd, struct sockaddr const *skaddr)
 static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 {
 	/* 如果存在原来的keep alive进程，就干掉他 */
-#define PID_FILE	"/tmp/cwnu-drcom.pid"
+#define PID_FILE	"/tmp/cwnu-drcom-eap.pid"
 	FILE *kpalvfd = fopen(PID_FILE, "r+");
 	if (NULL == kpalvfd) {
-		_M("[KPALV] No process pidfile. %s: %s\n", PID_FILE, strerror(errno));
+		_M("[EAP:KPALV] No process pidfile. %s: %s\n", PID_FILE, strerror(errno));
 		kpalvfd = fopen(PID_FILE, "w+"); /* 不存在，创建 */
 		if (NULL == kpalvfd) {
-			_M("[KPALV] Detect pid file eror(%s)! quit!\n", strerror(errno));
+			_M("[EAP:KPALV] Detect pid file eror(%s)! quit!\n", strerror(errno));
 			return -1;
 		}
 	}
@@ -355,7 +355,7 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 	}
 	setsid();
 	if (0 != chdir("/"))
-		_M("[KPALV:WARN] %s\n", strerror(errno));
+		_M("[EAP:KPALV:WARN] %s\n", strerror(errno));
 	umask(0);
 	/* 在/tmp下写入自己(keep alive)pid */
 	pid_t curpid = getpid();
@@ -365,15 +365,15 @@ static int eap_daemon(int skfd, struct sockaddr const *skaddr)
 	 * 这个写法有时不能正常截断文件，截断后前面有\0？
 	 */
 	if (NULL == (kpalvfd = freopen(PID_FILE, "w+", kpalvfd)))
-		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
+		_M("[EAP:KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
 	fprintf(kpalvfd, "%d", curpid);
 	fflush(kpalvfd);
 	if (0 == eap_keep_alive(skfd, skaddr)) {
-		_M("%s: [KPALV] Server maybe not need keep alive paket.\n", format_time());
-		_M("%s: [KPALV] Now, keep alive process quit!\n", format_time());
+		_M("%s: [EAP:KPALV] Server maybe not need keep alive paket.\n", format_time());
+		_M("%s: [EAP:KPALV] Now, keep alive process quit!\n", format_time());
 	}
 	if (NULL == (kpalvfd = freopen(PID_FILE, "w+", kpalvfd)))
-		_M("[KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
+		_M("[EAP:KPALV:WARN] truncat pidfile '%s': %s\n", PID_FILE, strerror(errno));
 	fprintf(kpalvfd, "-1");	/* 写入-1表示已经离开 */
 	fflush(kpalvfd);
 	fclose(kpalvfd);
@@ -401,7 +401,7 @@ int eaplogin(char const *uname, char const *pwd)
 	struct sockaddr_ll ll;
 
 	_M("Use user '%s' to login...\n", uname);
-	_M("[0] Initilize interface...\n");
+	_M("[EAP:0] Initilize interface...\n");
 	strncpy(_uname, uname, UNAME_LEN);
 	strncpy(_pwd, pwd, PWD_LEN);
 	pwdlen = strlen(_pwd);
@@ -410,34 +410,34 @@ int eaplogin(char const *uname, char const *pwd)
 	/* 无论如何先请求一下下线 */
 	eapol_logoff(skfd, (struct sockaddr*)&ll);
 	/* eap-start */
-	_M("[1] Send eap-start...\n");
+	_M("[EAP:1] Send eap-start...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eapol_start(skfd, (struct sockaddr*)&ll);
 		if (0 == filte_req_identity(skfd, (struct sockaddr*)&ll))
 			break;
-		_M(" [1] %dth Try send eap-start...\n", i+1);
+		_M(" [EAP:1] %dth Try send eap-start...\n", i+1);
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
 	/* response-identity */
-	_M("[2] Send response-identity...\n");
+	_M("[EAP:2] Send response-identity...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eap_res_identity(skfd, (struct sockaddr*)&ll);
 		state = filte_req_md5clg(skfd, (struct sockaddr*)&ll);
 		if (0 == state) break;
 		else if (-2 == state) goto _no_uname;
-		_M(" [2] %dth Try send response-identity...\n", i+1);
+		_M(" [EAP:2] %dth Try send response-identity...\n", i+1);
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
 	/* response-md5clg */
-	_M("[3] Send response-md5clg...\n");
+	_M("[EAP:3] Send response-md5clg...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eap_md5_clg(skfd, (struct sockaddr*)&ll);
 		state = filte_success(skfd, (struct sockaddr*)&ll);
 		if (0 == state) break;	/* 登录成功 */
 		else if (-2 == state) goto _pwd_err;
-		_M(" [3] %dth Try send response-md5clg...\n", i+1);
+		_M(" [EAP:3] %dth Try send response-md5clg...\n", i+1);
 	}
 	if (i >= TRY_TIMES) goto _timeout;
 
@@ -445,28 +445,28 @@ int eaplogin(char const *uname, char const *pwd)
 	switch (fork()) {
 	case 0:
 		if (0 != eap_daemon(skfd, (struct sockaddr*)&ll)) {
-			_M("[ERROR] Create daemon process to keep alive error!\n");
+			_M("[EAP:ERROR] Create daemon process to keep alive error!\n");
 			close(skfd);
 			exit(1);
 		}
 		exit(0);
 		break;
 	case -1:
-		_M("[WARN] Cant create daemon, maybe `OFFLINE` after soon.\n");
+		_M("[EAP:WARN] Cant create daemon, maybe `OFFLINE` after soon.\n");
 	}
 	close(skfd);
 	return 0;
 
 _timeout:
-	_M("[ERROR] Not server in range.\n");
+	_M("[EAP:ERROR] Not server in range.\n");
 	close(skfd);
 	return -2;
 _no_uname:
-	_M("[ERROR] No this user(%s).\n", uname);
+	_M("[EAP:ERROR] No this user(%s).\n", uname);
 	close(skfd);
 	return 1;
 _pwd_err:
-	_M("[ERROR] The server refuse to login. Password error.\n");
+	_M("[EAP:ERROR] The server refuse to login. Password error.\n");
 	close(skfd);
 	return 4;
 }
@@ -478,20 +478,20 @@ int eaplogoff(void)
 	int state;
 	int i;
 
-	_M("[0] Initilize interface...\n");
+	_M("[EAP:0] Initilize interface...\n");
 	if (0 != eapol_init(&skfd, (struct sockaddr*)&ll))
 		return -1;
-	_M("[1] Requset logoff...\n");
+	_M("[EAP:1] Requset logoff...\n");
 	for (i = 0; i < TRY_TIMES; ++i) {
 		eapol_logoff(skfd, (struct sockaddr*)&ll);
 		state = filte_success(skfd, (struct sockaddr*)&ll);
 		if (-2 == state) {
-			_M("[2] Logoff!\n");
+			_M("[EAP:2] Logoff!\n");
 			return 0;
 		}
-		_M(" [1] %dth Try Requset logoff...\n", i+1);
+		_M(" [EAP:1] %dth Try Requset logoff...\n", i+1);
 	}
-	_M("[ERROR] Not server in range. or You were logoff.\n");
+	_M("[EAP:ERROR] Not server in range. or You were logoff.\n");
 	return -1;
 }
 

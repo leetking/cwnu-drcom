@@ -17,7 +17,7 @@ IS_DEBUG := DEBUG
 #如果是, 就取GUI，否则就是空
 IS_GUI :=
 
-VERSION := 0.0.3.4
+VERSION := 0.0.4.0
 CONFIG	 := ./drcomrc
 ifneq "$(IS_GUI)" ""
 	RES := resource
@@ -64,7 +64,7 @@ endif #IS_GUI
 else
 	CFLAGS += -DLINUX
 	INSTALL := install
-	OBJS += eapol.o
+	OBJS += eapol.o drcom.o
 endif
 
 ifeq ($(IS_DEBUG), DEBUG)
@@ -79,7 +79,7 @@ ifeq ($(IS_GUI), GUI)
 	LDFLAGS += $(LDFLAGSS_GUI)
 	OBJS += main_gui.o gui.o
 else
-	OBJS += main_cli.o wrap_eapol.o
+	OBJS += main_cli.o wrap_eapol.o dhcp.o
 endif
 
 all: drcom
@@ -134,7 +134,7 @@ help:
 	@echo "     gui: GUI or empty(don't type it. e.g. 'IS_GUI=')"
 
 clean:
-	$(RM) *.o netif-config.exe netif-config drcom dist
+	$(RM) *.o netif-config.exe netif-config drcom dist gmon.out
 dist-clean: clean
 	$(RM) cscope.* tags dist
 	$(RM) $(APP)*

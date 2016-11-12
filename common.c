@@ -1,15 +1,23 @@
 /*
  * 一些通用的代码
  */
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <stdio.h>
+#include <errno.h>
 #include <time.h>
 #include "common.h"
 
 #ifdef LINUX
 # include <unistd.h>
+# include <arpa/inet.h>
+# include <net/ethernet.h>
+# include <sys/select.h>
+# include <net/if_arp.h>
+# include <net/if.h>
+# include <sys/ioctl.h>
+# include <netpacket/packet.h>
 # define PATH_SEP   '/'
 #elif defined(WINDOWS)
 # include <windows.h>
@@ -187,3 +195,103 @@ extern int copy(char const *f1, char const *f2)
 
 	return 0;
 }
+/*
+ * 本地是否是小端序
+ * @return: !0: 是
+ *           0: 不是(大端序)
+ */
+static int islsb()
+{
+	static uint16 a = 0x0001;
+	return (int)(*(uchar*)&a);
+}
+static uint16 exorders(uint16 n)
+{
+	return ((n>>8)|(n<<8));
+}
+static uint32 exorderl(uint32 n)
+{
+	return (n>>24)|((n&0x00ff0000)>>8)|((n&0x0000ff00)<<8)|(n<<24);
+}
+extern uint16 htols(uint16 n)
+{
+	return islsb()?n:exorders(n);
+}
+extern uint16 htoms(uint16 n)
+{
+	return islsb()?exorders(n):n;
+}
+extern uint16 ltohs(uint16 n)
+{
+	return islsb()?n:exorders(n);
+}
+extern uint16 mtohs(uint16 n)
+{
+	return islsb()?exorders(n):n;
+}
+extern uint32 htoll(uint32 n)
+{
+	return islsb()?n:exorderl(n);
+}
+extern uint32 htoml(uint32 n)
+{
+	return islsb()?exorderl(n):n;
+}
+extern uint32 ltohl(uint32 n)
+{
+	return islsb()?n:exorderl(n);
+}
+extern uint32 mtohl(uint32 n)
+{
+	return islsb()?exorderl(n):n;
+}
+extern uchar const *format_mac(uchar const *macarr)
+{
+	static uchar formatmac[] =
+		"xx:xx:xx:xx:xx:xx";
+	if (NULL == macarr)
+		return NULL;
+	sprintf((char*)formatmac, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+			macarr[0], macarr[1], macarr[2],
+			macarr[3], macarr[4], macarr[5]);
+	return formatmac;
+}
+
+#ifdef LINUX
+/*
+ * 返回t1-t0的时间差
+ * 由于这里精度没必要达到ns，故返回相差微秒ms
+ * @return: 时间差，单位微秒(1s == 1000ms)
+ */
+extern long difftimespec(struct timespec t1, struct timespec t0)
+{
+	long d = t1.tv_sec-t0.tv_sec;
+	d *= 1000;
+	d += (t1.tv_nsec-t0.tv_nsec)/(long)(1e6);
+	return d;
+}
+
+/*
+ * 判断网络是否连通
+ * 最长延时3s，也就是说如果3s内没有检测到数据回应，那么认为网络不通
+ * TODO 使用icmp协议判断
+ * @return: !0: 连通
+ *           0: 没有连通
+ */
+extern int isnetok(char const *ifname)
+{
+	static char baidu[] = "baidu.com";
+	return 1;
+}
+
+/*
+ * 休眠ms微秒
+ */
+extern void msleep(long ms)
+{
+	struct timeval tv;
+	tv.tv_sec = ms/1000;
+	tv.tv_usec = ms%1000*1000;
+	select(0, 0, 0, 0, &tv);
+}
+#endif /* LINUX */

@@ -16,6 +16,7 @@ typedef unsigned int uint32;	/* 四个字节 */
 #ifdef LINUX
 # include <linux/limits.h>
 # include <netinet/if_ether.h>
+# include <arpa/inet.h>
 # include <net/if.h>
 # define EXE_PATH_MAX   (PATH_MAX+1)
 #elif defined(WINDOWS)
@@ -105,5 +106,41 @@ extern char const *format_time(void);
  *         -1: 失败
  */
 extern int copy(char const *src, char const *dst);
+
+/*
+ * 字节序转换相关函数
+ * host to lsb/msb short/long (host->l/m)
+ * lsb/msb to host short/long (l/m->host)
+ */
+extern uint16 htols(uint16 n);
+extern uint16 htoms(uint16 n);
+extern uint16 ltohs(uint16 n);
+extern uint16 mtohs(uint16 n);
+
+extern uint32 htoll(uint32 n);
+extern uint32 htoml(uint32 n);
+extern uint32 ltohl(uint32 n);
+extern uint32 mtohl(uint32 n);
+
+extern uchar const *format_mac(uchar const *mac);
+
+/*
+ * 判断网络是否连通
+ * ifname: 接口名字
+ * @return: !0: 连通
+ *           0: 没有连通
+ */
+extern int isnetok(char const *ifname);
+/*
+ * 返回t1-t0的时间差
+ * 由于这里精度没必要达到ns，故返回相差微秒ms
+ * @return: 时间差，单位微秒(1s == 1000ms)
+ */
+extern long difftimespec(struct timespec t1, struct timespec t0);
+
+/*
+ * 休眠ms微秒
+ */
+extern void msleep(long ms);
 
 #endif

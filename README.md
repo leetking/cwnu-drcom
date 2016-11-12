@@ -2,7 +2,7 @@
 针对西华师范大学做的一个校园网登录客户端，首要目标是为linux用户提供便利。
 
 ## 使用
-直接make就好了
+直接make就好了，详细编译情况见wiki[如何编译](https://github.com/leetking/cwnu-drcom/wiki/HOW-TO-BUILD)
 
 1. **登录**
  修改`drcomrc.example`里面的配置为自己的，并重命名为`drcomrc`放到当前目录下。
@@ -39,9 +39,12 @@
 ## 进度
 - [x] 实现了eap协议，并学校实现eap层的自定义心跳。
 - [x] 自动选择网卡登录
+- [x] 实现了drcom部分协议，包括心跳
 
 ## TODO
-- [ ] 实现drcom协议
+- [ ] 实现icmp判断网络连接情况
+- [ ] 实现dhcp协议
+
 
 ## 下载
 见上方[^](https://github.com/leetking/cwnu-drcom/releases)的`release`页面

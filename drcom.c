@@ -21,6 +21,15 @@
 /* 一般超时3s */
 #define GENERAL_TIMEOUT	(3*1000)
 
+#ifdef DEBUG
+/*
+ *# define _DUMP(d, len)	format_data(d, len)
+ */
+# define _DUMP(d, len)	((void)0)
+#else
+# define _DUMP(d, len)	((void)0)
+#endif
+
 /* 过滤函数类型 */
 typedef int (*filter_t)(uchar const *buf, size_t len);
 
@@ -94,6 +103,8 @@ extern int drcom_login(char const *usr, char const *pwd)
 		switch (state) {
 		case 1:
 			if (get701cnt >= 3 || try1cnt >= 3) {	/* 已经尝试3次了 */
+				get701cnt = 0;
+				try1cnt = 0;
 				isfinish = 1;
 				ret = -1;
 				break;
@@ -111,7 +122,6 @@ extern int drcom_login(char const *usr, char const *pwd)
 			break;
 		case 0x701:
 			rdlen = recvfilter(recvbuf, BUFF_LEN, GENERAL_TIMEOUT, filter_is_702);
-			/* 超时 */
 			if (rdlen <= 0) {
 				++get701cnt;
 				state = 1;
@@ -121,14 +131,14 @@ extern int drcom_login(char const *usr, char const *pwd)
 				_D("recvflux: %02X%02X%02X%02X\n", flux[0], flux[1], flux[2], flux[3]);
 				state = 0x702;
 				_M("[DRCOM:1.1] Get server Response Keep Alive.\n");
+				_DUMP(recvbuf, rdlen);
 			}
 			break;
 		case 0x702:
-			if (get704cnt >= 3) {
+			if (try702cnt >= 3 || get704cnt >= 3) {	/* 发送失败或认证失败，直接退出吧 */
 				state = 1;
-				break;
-			}
-			if (try702cnt >= 3) {	/* 发送失败，直接退出吧 */
+				get704cnt = 0;
+				try702cnt = 0;
 				isfinish = 1;
 				ret = -1;
 				break;
@@ -138,7 +148,7 @@ extern int drcom_login(char const *usr, char const *pwd)
 			senddr->type = 0x07;
 			senddr->drcom_nrml_cnt = 0;
 			senddr->drcom_nrml_type = 0x03;
-			senddr->drcom_nrml_03usrlen = htols(strlen(usr));
+			senddr->drcom_nrml_03usrlen = strlen(usr);
 			memcpy(senddr->drcom_nrml_03cmac, srcmac, ETH_ALEN);
 			memcpy(&senddr->drcom_nrml_03cip, &srcip, sizeof(srcip));
 			memcpy(senddr->drcom_nrml_03fixed, "\x03\x22\x00\x08", 4);
@@ -151,8 +161,9 @@ extern int drcom_login(char const *usr, char const *pwd)
 			if (wrlen == len) {
 				try702cnt = 0;
 				state = 0x703;
+				_DUMP(sendbuf, wrlen);
 			} else {
-				_M("[DRCOM:1] %dtd send identity packet error. try again.\n", try702cnt);
+				_M("[DRCOM:1] %dth send identity packet error. try again.\n", try702cnt);
 				++try702cnt;
 			}
 			break;
@@ -165,6 +176,7 @@ extern int drcom_login(char const *usr, char const *pwd)
 				get704cnt = 0;
 				_M("[DRCOM:2.1] Authenticaty finish.\n");
 				state = 0x704;
+				_DUMP(recvbuf, rdlen);
 			}
 			break;
 		case 0x704:
@@ -270,7 +282,7 @@ static int wrap_send(uchar const *buf, size_t len, int timeout)
 		}
 		int rn;
 		rn = sendto(skfd, buf+wrlen, len-wrlen, 0, (struct sockaddr*)&skaddr, addrlen);
-		if (rn <= 0) {
+		if (rn < 0) {
 			return -wrlen;
 		} else {
 			wrlen += rn;
@@ -291,19 +303,34 @@ static int wrap_recv(uchar *buf, size_t len, int timeout)
 {
 	int rdlen = 0;
 	struct timeval tv;
-	fd_set rdset;
-	FD_ZERO(&rdset);
-	FD_SET(skfd, &rdset);
-	tv.tv_sec = timeout/1000;
-	tv.tv_usec = timeout%1000*1000;
-	if (-1 == select(skfd+1, &rdset, NULL, NULL, &tv)) {
-		perror("Recv Select");
-		return -1;
-	}
-	socklen_t addrlen = sizeof(struct sockaddr_in);
-	rdlen = recvfrom(skfd, buf, len, 0, (struct sockaddr*)&skaddr, &addrlen);
-	if (rdlen <= 0) {
-		return -1;
+	struct timespec t1, t0;
+	long used = 0;
+	clock_gettime(CLOCK_MONOTONIC, &t0);
+	for (;;) {
+		fd_set rdset;
+		FD_ZERO(&rdset);
+		FD_SET(skfd, &rdset);
+		tv.tv_sec = (timeout-used)/1000;
+		tv.tv_usec = (timeout-used)%1000*1000;
+		int s;
+		/* 为何uclibc上心跳数据没法获得 */
+		s = select(skfd+1, &rdset, NULL, NULL, &tv);
+		if (-1 == s || 0 == s) {
+			return -1;
+		}
+		struct sockaddr_in fromsk;
+		socklen_t addrlen = sizeof(fromsk);
+		memset(&fromsk, 0, addrlen);
+		rdlen = recvfrom(skfd, buf, len, 0, (struct sockaddr*)&fromsk, &addrlen);
+		_D("rdlen: %d\n", rdlen);
+		clock_gettime(CLOCK_MONOTONIC, &t1);
+		used = difftimespec(t1, t0);
+		if (ip_equal(AF_INET, &dstip, &fromsk.sin_addr) && rdlen >= 0) {
+			return rdlen;
+		}
+		if (used >= timeout) {
+			return -1;
+		}
 	}
 	return rdlen;
 }
@@ -391,11 +418,12 @@ static int drcom_keepalive(void)
 			senddr->drcom_nrml_len = htols(40);
 			senddr->drcom_nrml_type = 0x0b;
 			senddr->drcom_nrml_kpstep = 0x01;
-			senddr->drcom_nrml_kpfixed = 0x02d6;
+			senddr->drcom_nrml_kpfixed = htols(0x02d6);
 			kpid = (uint32)rand();
 			senddr->drcom_nrml_kpid = kpid;
 			senddr->drcom_nrml_kpsercnt = htoll(0x0b1);
 			wrlen = wrap_send(sendbuf, 40, GENERAL_TIMEOUT);	/* 心跳大小固定为40 */
+			_DUMP(sendbuf, 40);
 			if (wrlen == 40) {
 				try0cnt = 0;
 				state = 0x70b1;
@@ -423,12 +451,13 @@ static int drcom_keepalive(void)
 			senddr->drcom_nrml_len = htols(40);
 			senddr->drcom_nrml_type = 0x0b;
 			senddr->drcom_nrml_kpstep = 0x03;
-			senddr->drcom_nrml_kpfixed = 0x02d6;
+			senddr->drcom_nrml_kpfixed = htols(0x02d6);
 			kpid = (uint32)rand();
 			senddr->drcom_nrml_kpid = kpid;
 			senddr->drcom_nrml_kpsercnt = sercnt;
 			drcom_kp2_checksum(sendbuf);
 			wrlen = wrap_send(sendbuf, 40, GENERAL_TIMEOUT);
+			_DUMP(sendbuf, 40);
 			if (wrlen == 40) {
 				try70b2cnt = 0;
 				state = 0x70b3;
@@ -441,7 +470,7 @@ static int drcom_keepalive(void)
 			rdlen = recvfilter(recvbuf, BUFF_LEN, GENERAL_TIMEOUT, filter_is_70b3);
 			if (rdlen > 0) {
 				/* TODO 修改为其他公寓的模式 */
-				_M("[DRCOM:KPALV] finish A keep alive crycle.\n");
+				_M("%s [DRCOM:KPALV] finish A keep alive crycle.\n", format_time());
 			}
 			/* TODO fixed time */
 			long ms = 15000;

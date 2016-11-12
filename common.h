@@ -77,6 +77,16 @@ extern int getexedir(char *exedir);
  *         !0: 相同
  */
 extern int mac_equal(uchar const *mac1, uchar const *mac2);
+
+/*
+ * 判断两个ip是否相等
+ * type: AF_INET or AF_INET6, 分别对应ipv4,ipv6
+ * ip1, ip2: 比较的两个ip，同为struct in_addr或struct in6_addr的指针
+ * @return: 0: 不同
+ *         !0: 相同
+ */
+extern int ip_equal(int type, void const *ip1, void const *ip2);
+
 /*
  * 获取所有网络接口
  * ifnames 实际获取的接口
@@ -142,5 +152,10 @@ extern long difftimespec(struct timespec t1, struct timespec t0);
  * 休眠ms微秒
  */
 extern void msleep(long ms);
+
+/*
+ * 以16进制打印数据
+ */
+extern void format_data(uchar const *d, size_t len);
 
 #endif

@@ -5,6 +5,7 @@
 直接make就好了，详细编译情况见wiki[如何编译](https://github.com/leetking/cwnu-drcom/wiki/HOW-TO-BUILD)
 
 1. **登录**
+
  修改`drcomrc.example`里面的配置为自己的，并重命名为`drcomrc`放到当前目录下。
  然后输入
  ```bash
@@ -39,11 +40,12 @@
 ## 进度
 - [x] 实现了eap协议，并学校实现eap层的自定义心跳。
 - [x] 自动选择网卡登录
-- [x] 实现了drcom部分协议，包括心跳
+- [x] 按照本校drcom客户端版本`v3.7.3(u31)`完整实现。学校客户端v3.7.3能支持全校登录，那么这个版本也能全校使用:)
 
 ## TODO
 - [ ] 实现icmp判断网络连接情况
 - [ ] 实现dhcp协议
+- [ ] 实现完整`v5.2.0(x)`版本的drcom协议
 
 
 ## 下载

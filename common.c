@@ -308,6 +308,7 @@ extern long difftimespec(struct timespec t1, struct timespec t0)
 extern int isnetok(char const *ifname)
 {
 	static char baidu[] = "baidu.com";
+	sleep(100);
 	return 1;
 }
 

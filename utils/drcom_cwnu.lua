@@ -30,9 +30,11 @@ do
         [0x03] = "Send Identity",
         [0x04] = "Verity Success",
         [0x0b] = "Keep Aliveing",
+        [0x06] = "Keep Aliveing 2",
     }
     pf.normalauthtype = ProtoField.uint8("drcom.normalauthtype", "type", base.HEX, normalauthtype)
     pf.usrlen = ProtoField.uint8("drcom.usrlen", "usrlen")
+    pf.nusrlen = ProtoField.uint8("drcom.nusrlen", "n*usrlen")
     pf.clientMac = ProtoField.ether("drcom.clientMac", "clientMac")
     pf.clientIP = ProtoField.ipv4("drcom.clientIP", "clientIP")
     pf.serverIP = ProtoField.ipv4("drcom.serverIP", "serverIP")
@@ -55,6 +57,8 @@ do
     pf.kpcksum = ProtoField.uint32("drcom.kpcksum", "kpcksum", base.HEX)
     pf.md5a = ProtoField.bytes("drcom.md5a", "MD5A=md5(code +type +challenge +password)") --ubytes
     pf.drco = ProtoField.string("drcom.drco", "drco")
+    pf.time = ProtoField.uint16("drcom.time", "time")
+    pf.x06sercnt = ProtoField.uint32("drcom.x06sercnt", "sercnt")
 
 
     --为数据包解析的函数
@@ -77,6 +81,7 @@ do
             pkt.cols.info:append(", "..normalauthtype[step])
             --normal包第一个，请求开始心跳
             if (step == 0x01) then
+
             --服务器回应
             elseif (step == 0x02) then
                 subtree:add(pf.recvflux, buf(8, 4))
@@ -102,6 +107,14 @@ do
             --确认信息成功
             elseif (step == 0x04) then
                 subtree:add(pf.usrlen, buf(5, 1))
+                --subtree:add(pf.serverIP, buf(20, 4))
+                
+            --特殊心跳的一部分
+            elseif (step == 0x06) then
+                subtree:add_le(pf.nusrlen, buf(6, 2))       --每次加上usrlen
+                subtree:add_le(pf.x06sercnt, buf(8, 4))
+                subtree:add(pf.clientIP, buf(12, 4))
+                subtree:add_le(pf.nusrlen, buf(32, 2))       --每次加上usrlen
 
             --进行心跳
             elseif (step == 0x0b) then
@@ -125,16 +138,20 @@ do
                 end
             end
 
-            --0x4d 消息通知
+        --0x4d 消息通知
         elseif (pktid == 0x4d) then
             subtree:add(pf.msgtype, buf(1, 1))
+
+        --0xff 特殊心跳，每10个普通心跳后就有一个
         elseif (pktid == 0xff) then
+            --subtree:add(
             subtree:add(pf.md5a, buf(1,16))
             subtree:add(pf.zeros, buf(17,3))
             subtree:add(pf.drco, buf(20, 4))    --Drco
             subtree:add(pf.serverIP, buf(24, 4))
             --28, 2
             subtree:add(pf.clientIP, buf(30, 4))
+            subtree:add_le(pf.time, buf(36, 2))
         end
     end
 

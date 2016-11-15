@@ -22,10 +22,7 @@
 #define GENERAL_TIMEOUT	(3*1000)
 
 #ifdef DEBUG
-/*
- *# define _DUMP(d, len)	format_data(d, len)
- */
-# define _DUMP(d, len)	((void)0)
+# define _DUMP(d, len)	format_data(d, len)
 #else
 # define _DUMP(d, len)	((void)0)
 #endif
@@ -43,7 +40,7 @@ static struct sockaddr_in skaddr;
 /* 由于filter的需要，把客户端id(kpid)和服务器计数(sercnt)提出来了 */
 static uint32 kpid;			/* 表征一次心跳会话 */
 static uint32 sercnt;
-static int nrmlcnt = 107;	/* 心跳会话没进行一次应答就加1 */
+static uchar nrmlcnt = 107;	/* 心跳会话没进行一次应答就加1 */
 
 static uint32 drcom_id_checksum(uchar *in, int usrlen);
 static uint32 drcom_kp2_checksum(uchar *in);
@@ -158,10 +155,10 @@ extern int drcom_login(char const *usr, char const *pwd)
 			drcom_id_checksum(sendbuf, strlen(usr));
 			len = ltohs(senddr->drcom_nrml_len);
 			wrlen = wrap_send(sendbuf, len, GENERAL_TIMEOUT);
+			_DUMP(sendbuf, wrlen);
 			if (wrlen == len) {
 				try702cnt = 0;
 				state = 0x703;
-				_DUMP(sendbuf, wrlen);
 			} else {
 				_M("[DRCOM:1] %dth send identity packet error. try again.\n", try702cnt);
 				++try702cnt;
@@ -313,7 +310,6 @@ static int wrap_recv(uchar *buf, size_t len, int timeout)
 		tv.tv_sec = (timeout-used)/1000;
 		tv.tv_usec = (timeout-used)%1000*1000;
 		int s;
-		/* 为何uclibc上心跳数据没法获得 */
 		s = select(skfd+1, &rdset, NULL, NULL, &tv);
 		if (-1 == s || 0 == s) {
 			return -1;
@@ -389,6 +385,36 @@ static int drcom_daemon()
 /* 心跳进程 */
 static int drcom_keepalive(void)
 {
+	/* 把心跳日志记录下来, 可执行程序目录下 */
+#ifdef DEBUG
+	char logfile[] = "./drcom-keepalive.log";
+	char logbackfile[] = "./drcom-keepalive.log.back";
+	char log[EXE_PATH_MAX+sizeof(logfile)];
+	char logback[EXE_PATH_MAX+sizeof(logbackfile)];
+	if (0 != getexedir(log)) {
+		_M("[DRCOM:WARN] Cant get execute program directory.\n");
+		goto _keepalv_redirect_out_error;
+	}
+	strncat(log, logfile, sizeof(logfile));
+	if (0 != getexedir(logback)) {
+		_M("[DRCOM:WARN] Cant get execute program directory.\n");
+		goto _keepalv_redirect_out_error;
+	}
+	strncat(logback, logbackfile, sizeof(logbackfile));
+	if (0 != copy(log, logback)) {
+		_M("WARN: Cant backup kpalvlogfile (%s), no such file.\n", log);
+	}
+	_M("Now, save kpalvlog to file `%s`\n", log);
+	if (NULL == freopen(log, "w", stderr)) {
+		_M("WARN: Redirect `stderr` error!\n");
+	}
+	if (NULL == freopen(log, "w", stdout)) {
+		_M("WARN: Redirect `stdout` error!\n");
+	}
+_keepalv_redirect_out_error:
+	(void)0;
+
+#endif
 	int ret = 0;
 	uchar sendbuf[BUFF_LEN];
 	drcom_t *senddr = (drcom_t*)sendbuf;
@@ -396,8 +422,6 @@ static int drcom_keepalive(void)
 	drcom_t *recvdr = (drcom_t*)recvbuf;
 
 	/* 一个心跳循环记时 */
-	struct timespec stime, etime;
-
 	int try0cnt = 0;
 	int try70b2cnt = 0;
 	int rdlen, wrlen;
@@ -435,6 +459,7 @@ static int drcom_keepalive(void)
 		case 0x70b1:
 			rdlen = recvfilter(recvbuf, BUFF_LEN, GENERAL_TIMEOUT, filter_is_70b1);
 			if (rdlen > 0) {
+				_DUMP(recvbuf, rdlen);
 				_D("[drcom:kpalv] get sercnt: %0X\n", recvdr->drcom_nrml_kpsercnt);
 				sercnt = recvdr->drcom_nrml_kpsercnt;
 			}
@@ -469,11 +494,12 @@ static int drcom_keepalive(void)
 		case 0x70b3:
 			rdlen = recvfilter(recvbuf, BUFF_LEN, GENERAL_TIMEOUT, filter_is_70b3);
 			if (rdlen > 0) {
+				_DUMP(recvbuf, rdlen);
 				/* TODO 修改为其他公寓的模式 */
 				_M("%s [DRCOM:KPALV] finish A keep alive crycle.\n", format_time());
 			}
 			/* TODO fixed time */
-			long ms = 15000;
+			long ms = 20000;
 			msleep(ms);
 			state = 0;
 			break;

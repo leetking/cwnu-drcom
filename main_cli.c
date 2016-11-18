@@ -129,6 +129,7 @@ int main(int argc, char **argv)
 	_D("getenv: %s\n", ifname);
 	dhcp_setif(&dhcp, ifname);
 
+	_M("[DHCP] Get host ip from dhcp server...\n");
 	if (0 != dhcp_run(&dhcp)) {
 		_M("[ERROR] Get locale ip error. Can't connect to server! Network is offline.\n");
 		return 11;

@@ -88,7 +88,10 @@ extern int drcom_login(char const *usr, char const *pwd)
 	drcom_t *recvdr = (drcom_t*)recvbuf;
 	/* 初始化skfd和skaddr */
 	_M("[DRCOM:0] Init interface (%s)...\n", ifname);
-	drcom_init();
+	if (0 != drcom_init()) {
+		_M("[DRCOM:0] Init interface (%s) error!\n", ifname);
+		return -1;
+	}
 
 	int wrlen, rdlen, len;
 	int get701cnt = 0, get704cnt = 0;

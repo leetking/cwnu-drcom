@@ -112,6 +112,7 @@ extern int drcom_login(char const *usr, char const *pwd)
 			_M("[DRCOM:1] Try %d.%dth: Request Keep Alive...\n", try1cnt, get701cnt);
 			memcpy(sendbuf, "\x07\x01\x08\x00\x01\x00\x00\x00", 8);
 			wrlen = wrap_send(sendbuf, 8, GENERAL_TIMEOUT);
+			_D("wrlen == 8? %d %s\n", wrlen, wrlen==8?"true":"false");
 			if (8 == wrlen) {
 				try1cnt = 0;
 				state = 0x0701;
@@ -260,7 +261,7 @@ static uint32 drcom_kp2_checksum(uchar *in)
  * timeout: 发送超时，最长timeout毫秒1s = 1000ms
  * @return: len: 正常发送成功，返回发送的字节数
  *            0: 在timeout时间内发送失败
- *           -n: 发送了n字节后，超时了
+ *           -n: 发送了n字节后，失败
  */
 static int wrap_send(uchar const *buf, size_t len, int timeout)
 {
@@ -276,19 +277,27 @@ static int wrap_send(uchar const *buf, size_t len, int timeout)
 		FD_SET(skfd, &wrset);
 		tv.tv_sec = (timeout-used)/1000;
 		tv.tv_usec = (timeout-used)%1000*1000;
-		if (-1 == select(skfd+1, NULL, &wrset, NULL, &tv)) {
+		int s;
+		s = select(skfd+1, NULL, &wrset, NULL, &tv);
+		if (-1 == s) {
 			perror("Send Select");
+			return 0;
+		}
+		if (0 == s) {
+			_D("sendto timeout.\n");
 			return -wrlen;
 		}
-		int rn;
-		rn = sendto(skfd, buf+wrlen, len-wrlen, 0, (struct sockaddr*)&skaddr, addrlen);
-		if (rn < 0) {
+		int wn;
+		wn = sendto(skfd, buf+wrlen, len-wrlen, 0, (struct sockaddr*)&skaddr, addrlen);
+		if (wn < 0) {
+			_D("sendto %s\n", strerror(errno));
 			return -wrlen;
 		} else {
-			wrlen += rn;
+			wrlen += wn;
 		}
 		clock_gettime(CLOCK_MONOTONIC, &t1);
 		used = difftimespec(t1, t0);
+		_D("used: %ld wlen: %d\n", used, wrlen);
 	}
 	return wrlen;
 }

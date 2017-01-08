@@ -1,9 +1,10 @@
 #!/bin/sh /etc/rc.common
 # /init.d/cwnu-drcom
+#(C) leetking <li_Tking@163.com>
 
 CWNU_DRCOM_PATH=/overlay/cwnu-drcom
 
-#writed for openwrt to implement auto login
+# writed for openwrt to implement auto login
 
 START=98
 

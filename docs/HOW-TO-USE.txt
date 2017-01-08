@@ -1,3 +1,5 @@
+对于windows用户，如何使用
+
 1. 编辑drcomrc.example文件，把里面的uname改为自己的用户名，把pwd改为自己的密码，注意不要删除引号，并且注意全角和半角
 2. 把drcomrc.example重命名为drcomrc
 3. 登录时直接双击drcom-login.bat就好了

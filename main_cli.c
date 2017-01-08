@@ -177,8 +177,8 @@ static int getconf(char *_uname, char *_pwd)
 
 static void help(int argc, char **argv)
 {
-	_M("Usage: %s -r|h|l\n", argv[0]);
-	_M("      if want to login, it without argument. e.g. %s\n", argv[0]);
+	_M("Usage: %s -r|h|l|d\n", argv[0]);
+	_M("      if want to login, it without argument. e.g. `%s'\n", argv[0]);
 	_M("      -r: relogin.\n");
 	_M("      -l: logoff.\n");
 	_M("      -h: show this help page.\n");

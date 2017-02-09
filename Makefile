@@ -141,6 +141,7 @@ $(IPK): drcom random_mac
 	$(MKDIR) ./usr/lib/lua/luci/model/cbi/
 	$(MKDIR) ./etc/config/
 	$(MKDIR) ./etc/init.d/
+	$(MKDIR) ./etc/rc.d/
 	$(MKDIR) ./overlay/Drcom4CWNU/
 	$(MKDIR) ./usr/bin/
 	$(CP) openwrt/luci/Drcom4CWNU.reg.lua     ./usr/lib/lua/luci/controller/Drcom4CWNU.lua
@@ -150,6 +151,7 @@ $(IPK): drcom random_mac
 	chmod +x                                  ./etc/init.d/drcom.sh
 	$(CP) openwrt/scripts/drcom-daemon.sh     ./etc/init.d/drcom-daemon
 	chmod +x                                  ./etc/init.d/drcom-daemon
+	ln -sf /etc/init.d/drcom-daemon           ./etc/rc.d/S98drcom-daemon
 	$(CP) openwrt/scripts/wr2drcomrc.sh       ./overlay/Drcom4CWNU/wr2drcomrc.sh
 	chmod +x                                  ./overlay/Drcom4CWNU/wr2drcomrc.sh
 	$(CP) drcom                               ./overlay/Drcom4CWNU/drcom

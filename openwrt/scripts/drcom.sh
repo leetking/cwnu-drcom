@@ -1,23 +1,25 @@
 #!/bin/sh /etc/rc.common
-# /init.d/cwnu-drcom
-#(C) leetking <li_Tking@163.com>
 
-CWNU_DRCOM_PATH=/overlay/cwnu-drcom
+# wrap of `/overlay/Drcom4CWNU/drcom' for `/etc/init.d/drcom.sh',
+# write for openwrt to implement auto-login
+# GPL v2
+# (C) leetking <li_Tking@163.com>
+# locate at /etc/init.d/drcom.sh
 
-# writed for openwrt to implement auto login
+Drcom4CWNU_PATH=/overlay/Drcom4CWNU
 
 START=98
 
 start() {
     #dump login-msg to drcom-login.msg file.
-    ${CWNU_DRCOM_PATH}/drcom -d
+    ${Drcom4CWNU_PATH}/drcom -d
 }
 restart() {
-    ${CWNU_DRCOM_PATH}/drcom -r
+    ${Drcom4CWNU_PATH}/drcom -r
 }
 stop() {
-    ${CWNU_DRCOM_PATH}/drcom -l
+    ${Drcom4CWNU_PATH}/drcom -l
 }
 status() {
-    ${CWNU_DRCOM_PATH}/drcom -s
+    ${Drcom4CWNU_PATH}/drcom -s
 }

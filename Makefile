@@ -1,38 +1,52 @@
-CC := gcc
-#针对路由器的，一般的cpu架构都是mips msb吧:)，用于交叉编译
-#MIPS MSB
-#CC := mips-openwrt-linux-gcc
-#MIPS LSB
-#CC := mipsel-openwrt-linux-gcc
+# **编译选项在这里修改**
+#TARGET只可以取WIN, LINUX, OPENWRT几个选项
+#WIN 为windows程序编译
+#LINUX 为*nix系列系统编译
+#OPENWRT 专为openwrt路由器系统编译，并且会生成ipk安装包, NOTE 选择OPENWRT时，需要确定MIPS的大小端
+TARGET := LINUX
+#只有当TARGET为OPENWRT才定义MIPS，默认为MSB
+#大端: MSB; 小端: LSB
+MIPS := MSB
+#下面是高级选项
+#如果是, 就取DEBUG，否则就是空
+IS_DEBUG :=
+#如果是, 就取GUI，否则就是空
+IS_GUI :=
+#交叉编译，在TARGET选为OPENWRT并且制定MIPS时会自动确定CROSS的值
+#e.g. CROSS := mips-openwrt-linux-
+CROSS :=
+# **编译选项到此**
 
 RM := rm -rf
 CP := cp -r
 MKDIR := mkdir -p
+SED := sed
 
-#编译选项在这里修改
-#TARGET只可以取WIN, LINUX几个选项
-TARGET := LINUX
-#如果是, 就取DEBUG，否则就是空
-IS_DEBUG := DEBUG
-#如果是, 就取GUI，否则就是空
-IS_GUI :=
+CC := gcc
 
 VERSION := 0.0.4.1
 CONFIG	 := ./drcomrc
 ifneq "$(IS_GUI)" ""
 	RES := resource
 	ICON_PATH := $(RES)/icon.png
-endif
+endif #IS_GUI == ""
 ifeq ($(TARGET), WIN)
 	VERSION := $(VERSION)-win
 else
-ifeq ($(CC), gcc)
-	VERSION := $(VERSION)-linux-amd64
+ifeq ($(TARGET), OPENWRT)
+ifeq ($(MIPS), MSB)
+	CROSS := mips-openwrt-linux-
+	VERSION := $(VERSION)-openwrt-msb
 else
-	VERSION := $(VERSION)-linux-mips
+	CROSS := mipsel-openwrt-linux-
+	VERSION := $(VERSION)-openwrt-lsb
+endif #MIPS == MSB
+else
+	VERSION := $(VERSION)-linux-amd64
 endif #CC == gcc
 endif #TARGET == WIN
-APP := cwnu-drcom-$(VERSION)
+CC := $(CROSS)$(CC)
+APP := Drcom4CWNU-$(VERSION)
 
 CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
@@ -46,7 +60,7 @@ OBJS	:= md5.o config.o common.o
 CFLAGS	:= -DCONF_PATH=\"$(CONFIG)\" -DVERSION=\"$(VERSION)\"
 LDFLAGS :=
 
-ifeq ($(CC), gcc)
+ifeq ($(findstring gcc, $(CC)), gcc)
 ifeq ($(TARGET), LINUX)
 	CFLAGS_DEBUG += -pg
 	LDFLAGS_DEBUG += -pg
@@ -62,6 +76,9 @@ ifeq "$(IS_GUI)" ""
 	LDFLAGSS_GUI += -mwindows
 endif #IS_GUI
 else
+ifeq ($(TARGET), OPENWRT)
+	IPK := ipk
+endif #TARGET == OPENWRT
 	CFLAGS += -DLINUX
 	INSTALL := install
 	OBJS += eapol.o drcom.o
@@ -82,7 +99,7 @@ else
 	OBJS += main_cli.o wrap_eapol.o dhcp.o
 endif
 
-all: drcom
+all: drcom $(IPK)
 
 drcom: $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -119,6 +136,38 @@ $(INSTALL): drcom
 		$(MKDIR) dist; \
 	fi
 	$(CP) drcom drcomrc.example dist
+$(IPK): drcom random_mac
+	$(MKDIR) ./usr/lib/lua/luci/controller/
+	$(MKDIR) ./usr/lib/lua/luci/model/cbi/
+	$(MKDIR) ./etc/config/
+	$(MKDIR) ./etc/init.d/
+	$(MKDIR) ./overlay/Drcom4CWNU/
+	$(MKDIR) ./usr/bin/
+	$(CP) openwrt/luci/Drcom4CWNU.reg.lua     ./usr/lib/lua/luci/controller/Drcom4CWNU.lua
+	$(CP) openwrt/luci/Drcom4CWNU.cbi.lua     ./usr/lib/lua/luci/model/cbi/Drcom4CWNU.lua
+	$(CP) openwrt/luci/drcomrc.etc            ./etc/config/drcomrc
+	$(CP) openwrt/scripts/drcom.sh            ./etc/init.d/drcom.sh
+	chmod +x                                  ./etc/init.d/drcom.sh
+	$(CP) openwrt/scripts/drcom-daemon.sh     ./etc/init.d/drcom-daemon
+	chmod +x                                  ./etc/init.d/drcom-daemon
+	$(CP) openwrt/scripts/wr2drcomrc.sh       ./overlay/Drcom4CWNU/wr2drcomrc.sh
+	chmod +x                                  ./overlay/Drcom4CWNU/wr2drcomrc.sh
+	$(CP) drcom                               ./overlay/Drcom4CWNU/drcom
+	$(CP) drcomrc.example                     ./overlay/Drcom4CWNU/drcomrc
+	$(CP) random_mac                          ./usr/bin/random_mac
+	tar -czf data.tar.gz ./usr ./etc ./overlay
+	$(CP) openwrt/ipk/control                 ./control
+	$(SED) -i "s/Version.*/Version: $(VERSION)/"                                  ./control
+	$(SED) -i "s/Installed-Size.*/Installed-Size: `du -b data.tar.gz | cut -f1`/" ./control
+	$(SED) -i "s/Architecture.*/Architecture: MIPS-$(MIPS)/"                      ./control
+	tar -czf ./control.tar.gz ./control
+	$(CP) openwrt/ipk/debian-binary           ./debian-binary
+	tar -cf $(APP) ./data.tar.gz ./debian-binary ./control.tar.gz
+	cat $(APP) | gzip -c > $(APP).ipk
+	$(RM) ./usr ./etc ./overlay ./data.tar.gz ./debian-binary ./control.tar.gz ./control
+	$(RM) $(APP)
+random_mac: openwrt/random_mac.c
+	$(CC) -o $@ $^ $(CFLAGS)
 
 help:
 	@echo "make help|all|release|tar|dist-clean"
@@ -134,8 +183,8 @@ help:
 	@echo "     gui: GUI or empty(don't type it. e.g. 'IS_GUI=')"
 
 clean:
-	$(RM) *.o netif-config.exe netif-config drcom dist gmon.out
+	$(RM) *.o netif-config.exe netif-config drcom dist gmon.out random_mac
 dist-clean: clean
 	$(RM) cscope.* tags dist
-	$(RM) $(APP)*
-.PHONY: clean all tar dist-clean release help install
+	$(RM) $(APP)* *.ipk
+.PHONY: clean all tar dist-clean release help install ipk

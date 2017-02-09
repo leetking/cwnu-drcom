@@ -1,12 +1,13 @@
 #!/bin/sh /etc/rc.common
 
-# cwnu-drcom deamon process
+# Drcom4CWNU deamon process
 # GPL v2
 # (C) leetking <li_Tking@163.com>
+# locate at /etc/init.d/drcom-daemon
 
 PATH=$PATH:/etc/init.d/
 
-CWNU_DRCOM_PATH=/etc/init.d/cwnu-drcom
+DRCOM_PATH=/etc/init.d/drcom.sh
 
 #record status
 SLEEPTIME=60
@@ -24,7 +25,7 @@ _empty() {
     return 0
 }
 
-cwnu_daemon() {
+drcom_daemon() {
     if isconnect; then
         SLEEPTIME=60
         RECONCNT=0
@@ -33,8 +34,8 @@ cwnu_daemon() {
         sleep 420
     else
         RECONCNT=`expr ${RECONCNT} + 1`
-        echo "${RECONCNT}-th restarting cwnu-drcom..."
-        ${CWNU_DRCOM_PATH} start
+        echo "${RECONCNT}-th restarting Drcom4CWNU ..."
+        ${DRCOM_PATH} start
         echo "sleep ${SLEEPTIME}s..."
         sleep ${SLEEPTIME}
         if [ ${RECONCNT} -gt 2 -a ${SLEEPTIME} -lt 86400 ]; then
@@ -45,8 +46,8 @@ cwnu_daemon() {
 
 _pass() {
     while true; do
-        cwnu_daemon
-    done > /tmp/cwnu_daemon.log &
+        drcom_daemon
+    done > /tmp/drcom_daemon.log &
 }
 
 # generate a random mac address

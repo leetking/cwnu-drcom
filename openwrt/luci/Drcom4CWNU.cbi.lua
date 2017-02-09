@@ -1,13 +1,14 @@
-require("luci.sys")
-
 --[[
     cbi 模块
     用于处理登录
+    位于 /usr/lib/lua/luci/model/cbi/Drcom4CWNU.lua
 ]]--
+
+require("luci.sys")
 
 local ETC_CONFIG = "drcomrc"
 local ETC_CONFIG_SECTION = "setting"
-local DRCOM_PATH = "/overlay/cwnu-drcom/"
+local DRCOM_PATH = "/overlay/Drcom4CWNU/"
 local WR2DRCOMRC = "wr2drcomrc.sh"
 local APP_NAME = "Dr.com4CWNU"
 local DESCRIPTION = "<a href='https://github.com/leetking/cwnu-drcom'>cwnu-drcom</a><br/>一个为<a href='http://www.cwnu.edu.cn'>西华师范大学</a>开发的第三方dr.com登录客户端."

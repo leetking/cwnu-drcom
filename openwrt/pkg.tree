@@ -1,0 +1,27 @@
+# ipk安装后的目录结构
+
+```shell
+/
+|-- etc
+|   |-- config
+|   |   +-- drcomrc                             # UI配置文档
+|   +-- init.d
+|       |-- drcom-daemon                        # 守护进程
+|       +-- drcom.sh
+|-- overlay
+|   +-- Drcom4CWNU
+|       |-- drcom                               # 主程序
+|       |-- drcomrc                             # 主程序配置文件
+|       +-- wr2drcomrc.sh
++-- usr
+    |-- bin
+    |   +-- random_mac                          # 随机mac地址程序
+    +-- lib
+        +-- lua
+            +-- luci                            # UI界面
+                |-- controller
+                |   +-- Drcom4CWNU.lua
+                +-- model
+                    +-- cbi
+                        +-- Drcom4CWNU.lua
+```

@@ -1,0 +1,13 @@
+Package: Drcom4CWNU
+Version: 
+Depends: libc
+Source: http://github.com/leetking/cwnu-drcom.git
+License: GPLv2
+LicenseFiles: LICENSE
+Section: network
+Maintainer: leetking <li_Tking@163.com>
+Architecture: 
+Installed-Size: 
+Description: The 3rd application for China West Normal University (http://www.cwnu.edu.cn)
+ embeding router powered by `openwrt`. We use it just to login net by student idcard and password.
+ More detail, please see project main website (http://github.com/leetking/cwnu-drcom).

@@ -1,11 +1,13 @@
 #!/bin/sh /etc/rc.common
 
-# 读取/etc/config/drcomrc里的openwrt格式信息
-# 把里面的用户名(uanme), 密码(pwd)写到cwnu-drcom的配置文件里(/overlay/cwnu-drcom/drcomrc)
+# post `uname' and `pwd' from /etc/config/drcom to `/overlay/Drcom4CWNU/drcomrc'
+# GPL v2
+# (C) leetking <li_Tking@163.com>
+# locate at /overlay/Drcom4CWNU/wr2drcomrc.sh
 
 CONFIG_NAME=drcomrc
 SECTION_NAME=setting
-DRCOMRC=/overlay/cwnu-drcom/drcomrc
+DRCOMRC=/overlay/Drcom4CWNU/drcomrc
 
 parse_conf() {
     local uname

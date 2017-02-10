@@ -2,29 +2,29 @@
 
 ```shell
 /
-|-- etc
-|   |-- config
-|   |   +-- drcomrc                                     # UI的配置文档
-|   |-- init.d
-|   |   |-- drcom-daemon                                # 本程序的守护进程
-|   |   +-- drcom.sh
-|   +-- rc.d
-|       +-- S98drcom-daemon -> /etc/init.d/drcom-daemon # 开机启动链接
-|-- overlay
-|   +-- Drcom4CWNU
-|       |-- drcom                                       # 核心认证程序
-|       |-- drcomrc                                     # 核心认证程序的配置文档
-|       +-- wr2drcomrc.sh
-+-- usr
-    |-- bin
-    |   +-- random_mac                                  # 产生随机mac地址的程序
-    +-- lib
-        +-- lua
-            +-- luci                                    # UI文档
-                |-- controller
+|-- etc/
+|   |-- config/
+|   |   +-- drcomrc                                       # UI的配置文档
+|   |-- init.d/
+|   |   |-- drcom-daemon*                                 # 本程序的守护进程
+|   |   +-- drcom.sh*
+|   +-- rc.d/
+|       +-- S98drcom-daemon -> /etc/init.d/drcom-daemon*  # 开机启动链接
+|-- overlay/
+|   +-- Drcom4CWNU/
+|       |-- drcom*                                        # 核心认证程序
+|       |-- drcomrc                                       # 核心认证程序的配置文档
+|       +-- wr2drcomrc.sh/
++-- usr/
+    |-- bin/
+    |   +-- random_mac*                                   # 产生随机mac地址的程序
+    +-- lib/
+        +-- lua/
+            +-- luci/                                     # UI文档
+                |-- controller/
                 |   +-- Drcom4CWNU.lua
-                +-- model
-                    +-- cbi
+                +-- model/
+                    +-- cbi/
                         +-- Drcom4CWNU.lua
-# Create by `tree --charset=ascii`
+# Create by `tree --charset=ascii -F`
 ```

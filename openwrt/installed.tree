@@ -10,7 +10,6 @@
 |   |   +-- drcom.sh
 |   +-- rc.d
 |       +-- S98drcom-daemon -> /etc/init.d/drcom-daemon # 开机启动链接
-|-- installed.tree
 |-- overlay
 |   +-- Drcom4CWNU
 |       |-- drcom                                       # 核心认证程序

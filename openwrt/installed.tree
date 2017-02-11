@@ -14,7 +14,7 @@
 |   +-- Drcom4CWNU/
 |       |-- drcom*                                        # 核心认证程序
 |       |-- drcomrc                                       # 核心认证程序的配置文档
-|       +-- wr2drcomrc.sh/
+|       +-- wr2drcomrc.sh*
 +-- usr/
     |-- bin/
     |   +-- random_mac*                                   # 产生随机mac地址的程序
@@ -26,5 +26,5 @@
                 +-- model/
                     +-- cbi/
                         +-- Drcom4CWNU.lua
-# Create by `tree --charset=ascii -F`
 ```
+* Create by `tree --charset=ascii -F` *

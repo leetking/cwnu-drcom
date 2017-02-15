@@ -14,7 +14,8 @@
 |   +-- Drcom4CWNU/
 |       |-- drcom*                                        # 核心认证程序
 |       |-- drcomrc                                       # 核心认证程序的配置文档
-|       +-- wr2drcomrc.sh*
+|       |-- wr2drcomrc.sh*                                # 把核心认证程序需要的用户名和密码写到/overlay/Drcom4CWNU/drcomrc里
+|       +-- wr2wireless.sh*                               # 把wifi名字和密码写到wireless配置文件
 +-- usr/
     |-- bin/
     |   +-- random_mac*                                   # 产生随机mac地址的程序

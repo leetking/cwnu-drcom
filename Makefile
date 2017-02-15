@@ -154,6 +154,8 @@ $(IPK): drcom random_mac
 	ln -sf /etc/init.d/drcom-daemon           ./etc/rc.d/S98drcom-daemon
 	$(CP) openwrt/scripts/wr2drcomrc.sh       ./overlay/Drcom4CWNU/wr2drcomrc.sh
 	chmod +x                                  ./overlay/Drcom4CWNU/wr2drcomrc.sh
+	$(CP) openwrt/scripts/wr2wireless.sh      ./overlay/Drcom4CWNU/wr2wireless.sh
+	chmod +x                                  ./overlay/Drcom4CWNU/wr2wireless.sh
 	$(CP) drcom                               ./overlay/Drcom4CWNU/drcom
 	$(CP) drcomrc.example                     ./overlay/Drcom4CWNU/drcomrc
 	$(CP) random_mac                          ./usr/bin/random_mac
@@ -161,7 +163,13 @@ $(IPK): drcom random_mac
 	$(CP) openwrt/ipk/control                 ./control
 	$(SED) -i "s/Version.*/Version: $(VERSION)/"                                  ./control
 	$(SED) -i "s/Installed-Size.*/Installed-Size: `du -b data.tar.gz | cut -f1`/" ./control
-	$(SED) -i "s/Architecture.*/Architecture: MIPS-$(MIPS)/"                      ./control
+	#$(SED) -i "s/Architecture.*/Architecture: MIPS-$(MIPS)/"                      ./control
+	#欺骗opkg吧
+	if [ "$(MIPS)" = "MSB" ]; then \
+		$(SED) -i "s/Architecture.*/Architecture: ar71xx/" ./control; \
+	else \
+		$(SED) -i "s/Architecture.*/Architecture: ramips_24kec/" ./control; \
+	fi
 	tar -czf ./control.tar.gz ./control
 	$(CP) openwrt/ipk/debian-binary           ./debian-binary
 	tar -cf $(APP) ./data.tar.gz ./debian-binary ./control.tar.gz

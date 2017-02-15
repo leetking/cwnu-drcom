@@ -1,6 +1,6 @@
 #!/bin/sh /etc/rc.common
 
-# post `uname' and `pwd' from /etc/config/drcom to `/overlay/Drcom4CWNU/drcomrc'
+# post `uname' and `pwd' from /etc/config/drcomrc to `/overlay/Drcom4CWNU/drcomrc'
 # GPL v2
 # (C) leetking <li_Tking@163.com>
 # locate at /overlay/Drcom4CWNU/wr2drcomrc.sh

@@ -164,11 +164,12 @@ $(IPK): drcom random_mac
 	$(SED) -i "s/Version.*/Version: $(VERSION)/"                                  ./control
 	$(SED) -i "s/Installed-Size.*/Installed-Size: `du -b data.tar.gz | cut -f1`/" ./control
 	#$(SED) -i "s/Architecture.*/Architecture: MIPS-$(MIPS)/"                      ./control
-	#欺骗opkg吧
+	# 欺骗opkg吧
+	# 对于mips lsb的不知道具体架构是什么，那就直接写成all算了...
 	if [ "$(MIPS)" = "MSB" ]; then \
 		$(SED) -i "s/Architecture.*/Architecture: ar71xx/" ./control; \
 	else \
-		$(SED) -i "s/Architecture.*/Architecture: ramips_24kec/" ./control; \
+		$(SED) -i "s/Architecture.*/Architecture: all/" ./control; \
 	fi
 	tar -czf ./control.tar.gz ./control
 	$(CP) openwrt/ipk/debian-binary           ./debian-binary

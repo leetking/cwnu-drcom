@@ -173,8 +173,8 @@ $(IPK): drcom random_mac
 	fi
 	tar -czf ./control.tar.gz ./control
 	$(CP) openwrt/ipk/debian-binary           ./debian-binary
-	tar -cf $(APP) ./data.tar.gz ./debian-binary ./control.tar.gz
-	cat $(APP) | gzip -c > $(APP).ipk
+	tar -czf $(APP).ipk ./data.tar.gz ./debian-binary ./control.tar.gz
+	#cat $(APP) | gzip -c > $(APP).ipk
 	$(RM) ./usr ./etc ./overlay ./data.tar.gz ./debian-binary ./control.tar.gz ./control
 	$(RM) $(APP)
 random_mac: openwrt/random_mac.c

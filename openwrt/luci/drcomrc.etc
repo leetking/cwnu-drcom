@@ -1,6 +1,6 @@
 # locate at /etc/config/drcomrc
 config setting
-    option uname '201413640731' # there is user name (student identity card number).
+    option uname '201413xxxxxx' # there is user name (student identity card number).
     option pwd   'testpwd'      # there is your pass word.
     option wifissid 'yourwifiname' # there is your wifi's name.
     option wifipwd  'yourwifipwd'  # there is your wifi's pass word.

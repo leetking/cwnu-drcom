@@ -22,14 +22,14 @@ typedef unsigned int uint32;	/* 四个字节 */
 #elif defined(WINDOWS)
 # include <windows.h>
 # define ETH_ALEN	    (6)
-# define IFNAMSIZ	    (64)
+# define IF_NAMESIZE	    (64)
 # define MTU_MAX	    (65536)
 # define EXE_PATH_MAX   (MAX_PATH+1)
 # define IFDESCSIZ      (126)
 #endif
 
 typedef struct {
-    char name[IFNAMSIZ]; /* linux下是eth0, windows采用的是注册表类似的(\Device\NPF_{xxxx-xxx-xx-xx-xxx}) */
+    char name[IF_NAMESIZE]; /* linux下是eth0, windows采用的是注册表类似的(\Device\NPF_{xxxx-xxx-xx-xx-xxx}) */
 #ifdef WINDOWS
     char desc[IFDESCSIZ]; /* windows下描述(AMD PCNET Family PCI Ethernet Adapter) */
 #endif

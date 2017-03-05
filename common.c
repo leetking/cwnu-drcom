@@ -145,7 +145,7 @@ extern int getall_ifs(iflist_t *ifs, int *cnt)
 			_D("filtered %s.\n", name);
 			continue;
 		}
-		strncpy(ifs[i].name, name, IFNAMSIZ);
+		strncpy(ifs[i].name, name, IF_NAMESIZE);
 		_D("ifs[%d].name: %s\n", i, ifs[i].name);
 		++i;
 		if (i >= *cnt) {
@@ -168,7 +168,7 @@ extern int getall_ifs(iflist_t *ifs, int *cnt)
 			continue;
 		}
 		if (i >= *cnt) return -2;
-		strncpy(ifs[i].name, d->name, IFNAMSIZ);
+		strncpy(ifs[i].name, d->name, IF_NAMESIZE);
 		strncpy(ifs[i].desc, d->description, IFDESCSIZ);
 		++i;
 	}

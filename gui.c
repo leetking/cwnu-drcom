@@ -22,7 +22,7 @@
 #define IFDESCSIZ       (126)
 
 typedef struct {
-    char name[IFNAMSIZ]; /* linux下是eth0, windows采用的是注册表类似的(\Device\NPF_{xxxx-xxx-xx-xx-xxx}) */
+    char name[IF_NAMESIZE]; /* linux下是eth0, windows采用的是注册表类似的(\Device\NPF_{xxxx-xxx-xx-xx-xxx}) */
 #ifdef WINDOWS
     char desc[IFDESCSIZ]; /* windows下描述(AMD PCNET Family PCI Ethernet Adapter) */
 #endif
@@ -305,7 +305,7 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
 			_D("filtered %s.\n", name);
 			continue;
 		}
-        strncpy(ifs[i].name, name, IFNAMSIZ);
+        strncpy(ifs[i].name, name, IF_NAMESIZE);
         _D("ifs[%d].name: %s\n", i, ifs[i].name);
         ++i;
         if (i >= *cnt) {
@@ -327,7 +327,7 @@ static int getall_ifs(iflist_t *ifs, int *cnt)
             continue;
         }
         if (i >= *cnt) return -2;
-        strncpy(ifs[i].name, d->name, IFNAMSIZ);
+        strncpy(ifs[i].name, d->name, IF_NAMESIZE);
         strncpy(ifs[i].desc, d->description, IFDESCSIZ);
         ++i;
     }

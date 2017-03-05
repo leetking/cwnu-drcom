@@ -14,7 +14,7 @@
  * 信息存储结构
  */
 typedef struct dhcp_t {
-	char ifname[IFNAMSIZ];
+	char ifname[IF_NAMESIZE];
 	union {
 		struct {	/* ipv4 */
 			struct in_addr _serip;

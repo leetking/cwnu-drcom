@@ -26,7 +26,7 @@ static uchar client_mac[ETH_ALEN];
 
 static uchar sendbuff[BUFF_LEN];
 static uchar recvbuff[BUFF_LEN];
-static char ifname[IFNAMSIZ] = "eth0";
+static char ifname[IF_NAMESIZE] = "eth0";
 static ethII_t *sendethii, *recvethii;
 static eapol_t *sendeapol, *recveapol;
 static eap_t *sendeap, *recveap;
@@ -75,7 +75,7 @@ static int eapol_init(int *skfd, struct sockaddr *skaddr)
 	/* 先假定就是eth0接口 */
 	memset(skaddr, 0, sizeof(struct sockaddr_ll));
 	memset(&ifr, 0, sizeof(struct ifreq));
-	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+	strncpy(ifr.ifr_name, ifname, IF_NAMESIZE);
 	if (-1 == ioctl(*skfd, SIOCGIFINDEX, &ifr)) {
 		perror("Get index");
 		goto addr_err;
@@ -503,5 +503,5 @@ int eaprefresh(char const *uname, char const *pwd)
 /* 设置ifname */
 void setifname(char *_ifname)
 {
-	strncpy(ifname, _ifname, IFNAMSIZ);
+	strncpy(ifname, _ifname, IF_NAMESIZE);
 }

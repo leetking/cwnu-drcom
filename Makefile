@@ -57,7 +57,7 @@ LDFLAGS_DEBUG	:=
 CFLAGS_RELEASE	:= -O2 -W -Wall
 
 OBJS	:= md5.o config.o common.o
-CFLAGS	:= -DCONF_PATH=\"$(CONFIG)\" -DVERSION=\"$(VERSION)\"
+CFLAGS	:= -DCONF_PATH=\"$(CONFIG)\" -DVERSION=\"$(VERSION)\" -std=gnu99
 LDFLAGS :=
 
 ifeq ($(findstring gcc, $(CC)), gcc)
@@ -163,14 +163,9 @@ $(IPK): drcom random_mac
 	$(CP) openwrt/ipk/control                 ./control
 	$(SED) -i "s/Version.*/Version: $(VERSION)/"                                  ./control
 	$(SED) -i "s/Installed-Size.*/Installed-Size: `du -b data.tar.gz | cut -f1`/" ./control
-	#$(SED) -i "s/Architecture.*/Architecture: MIPS-$(MIPS)/"                      ./control
 	# 欺骗opkg吧
-	# 对于mips lsb的不知道具体架构是什么，那就直接写成all算了...
-	if [ "$(MIPS)" = "MSB" ]; then \
-		$(SED) -i "s/Architecture.*/Architecture: ar71xx/" ./control; \
-	else \
-		$(SED) -i "s/Architecture.*/Architecture: all/" ./control; \
-	fi
+	# 架构直接写成all免去检测，但实际上是按照mips的大小端来分类好了的
+	$(SED) -i "s/Architecture.*/Architecture: all/" ./control;
 	tar -czf ./control.tar.gz ./control
 	$(CP) openwrt/ipk/debian-binary           ./debian-binary
 	tar -czf $(APP).ipk ./data.tar.gz ./debian-binary ./control.tar.gz

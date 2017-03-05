@@ -20,7 +20,7 @@
 static uchar client_mac[ETH_ALEN];
 
 static uchar sendbuff[BUFF_LEN];
-static char ifname[IFNAMSIZ] = "\\Device\\NPF_{AEDD3BFA-33D3-4B29-B1FC-0B82C65E42D3}";
+static char ifname[IF_NAMESIZE] = "\\Device\\NPF_{AEDD3BFA-33D3-4B29-B1FC-0B82C65E42D3}";
 static ethII_t *sendethii, *recvethii;
 static eapol_t *sendeapol, *recveapol;
 static eap_t *sendeap, *recveap;
@@ -59,7 +59,7 @@ static int eapol_init(pcap_t **skfd)
 {
     pcap_if_t *alldevs, *d;
     char errbuf[PCAP_ERRBUF_SIZE];
-    char ifbuff[8+IFNAMSIZ] = "rpcap://";
+    char ifbuff[8+IF_NAMESIZE] = "rpcap://";
 
     sendethii = (ethII_t*)sendbuff;
     sendeapol = (eapol_t*)((uchar*)sendethii+sizeof(ethII_t));
@@ -99,7 +99,7 @@ static int eapol_init(pcap_t **skfd)
             client_mac[3],client_mac[4],client_mac[5]);
 
     /* 获取网络接口句柄 */
-    strncat(ifbuff, ifname, IFNAMSIZ);
+    strncat(ifbuff, ifname, IF_NAMESIZE);
     if (NULL == (*skfd = pcap_open(d->name, MTU_MAX,
                     PCAP_OPENFLAG_PROMISCUOUS, TIMEOUT*1000, NULL, errbuf))) {
         _M("Get interface handler:%s\n", errbuf);
@@ -500,5 +500,5 @@ int eaplogoff(void)
 }
 void setifname(char *_ifname)
 {
-    strncpy(ifname, _ifname, IFNAMSIZ);
+    strncpy(ifname, _ifname, IF_NAMESIZE);
 }

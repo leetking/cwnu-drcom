@@ -23,12 +23,12 @@ int main(int argc, char **argv)
 {
 	char uname[UNAME_LEN];
 	char pwd[PWD_LEN];
-	char ifname[IFNAMSIZ];
+	char ifname[IF_NAMESIZE];
 
 	char islogoff = 0;
 #ifdef WINDOWS
 	char iskpalv = 0;
-	char kpalv_if[IFNAMSIZ];
+	char kpalv_if[IF_NAMESIZE];
 #endif
 
 	int i;
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 			 */
 			if (NULL == argv[i+1])
 				goto _cant_eap_daemon;
-			strncpy(kpalv_if, argv[i+1], IFNAMSIZ);
+			strncpy(kpalv_if, argv[i+1], IF_NAMESIZE);
 			_D("kpalv_if: %s\n", kpalv_if);
 			iskpalv = 1;
 		}
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 		_M("[ERROR] Cant get ifname from environment.\n");
 		return 9;
 	}
-	strncpy(ifname, _ifname, IFNAMSIZ);
+	strncpy(ifname, _ifname, IF_NAMESIZE);
 	_D("getenv: %s\n", ifname);
 	dhcp_setif(&dhcp, ifname);
 

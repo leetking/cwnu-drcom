@@ -32,7 +32,7 @@ typedef int (*filter_t)(uchar const *buf, size_t len);
 
 static ipv4_t srcip;
 static ipv4_t dstip;
-static char ifname[IFNAMSIZ];
+static char ifname[IF_NAMESIZE];
 static uchar srcmac[ETH_ALEN];
 static int skfd;
 static struct sockaddr_in skaddr;
@@ -64,7 +64,7 @@ static int filter_is_70b3(uchar const *buf, size_t len);
  */
 extern int drcom_setifname(char const *_ifname)
 {
-	strncpy(ifname, _ifname, IFNAMSIZ);
+	strncpy(ifname, _ifname, IF_NAMESIZE);
 	_D("ifname: %s\n", ifname);
 	return 0;
 }
@@ -558,7 +558,7 @@ static int drcom_init(void)
 	}
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+	strncpy(ifr.ifr_name, ifname, IF_NAMESIZE);
 	if (-1 == ioctl(rawskfd, SIOCGIFHWADDR, &ifr)) {
 		perror("Get Mac");
 		close(rawskfd);

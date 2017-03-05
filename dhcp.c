@@ -22,7 +22,7 @@
  */
 int dhcp_setif(dhcp_t *s, char const *ifname)
 {
-	strncpy(s->ifname, ifname, IFNAMSIZ);
+	strncpy(s->ifname, ifname, IF_NAMESIZE);
 	_D("ifname: %s\n", s->ifname);
 	return 0;
 }

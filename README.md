@@ -4,6 +4,8 @@
 _**[drcom-generic](https://github.com/drcoms/drcom-generic.git)已经有了C版本，虽然本校还是可以直接用这个，如果觉得不好用请使用[这里](https://github.com/mchome/dogcom.git)，mchome大神的**_。
 
 ## 使用
+
+### A. 符合POSIX的系统（GNU/LINUX UNIX OSX）
 直接make就好了，详细编译情况见wiki[如何编译](https://github.com/leetking/cwnu-drcom/wiki/HOW-TO-BUILD)
 
 1. **登录**
@@ -18,7 +20,7 @@ _**[drcom-generic](https://github.com/drcoms/drcom-generic.git)已经有了C版�
  ```bash
  $ sudo chown root:root drcom; sudo chmod +s drcom
  ```
- 以后登录就直接`./drcom`就可以了
+ 以后登录就直接`./drcom`
 
 2. **注销**
  ```bash
@@ -38,6 +40,9 @@ _**[drcom-generic](https://github.com/drcoms/drcom-generic.git)已经有了C版�
  ```bash
  $ ./drcom -h
  ```
+ 
+### B. 路由器（OPENWRT系列）
+去[下载](https://github.com/leetking/cwnu-drcom/releases/latest)ipk安装包，自行安装。然后进入路由器设置信息保存，**重启**路由器
 
 ## 进度
 - [x] 实现了eap协议，并学校实现eap层的自定义心跳

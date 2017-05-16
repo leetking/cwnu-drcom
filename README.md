@@ -5,7 +5,7 @@
 
 针对西华师范大学做的一个校园网登录客户端，首要目标是为linux用户提供便利。
 
-_**[drcom-generic](https://github.com/drcoms/drcom-generic.git)已经有了C版本，虽然本校还是可以直接用这个，如果觉得不好用请使用mchome大神的[dogcom](https://github.com/mchome/dogcom.git)。
+_**[drcom-generic](https://github.com/drcoms/drcom-generic.git)已经有了C版本，虽然本校还是可以直接用这个，如果觉得不好用请使用mchome大神的[dogcom](https://github.com/mchome/dogcom.git)。**_
 
 ## 使用
 

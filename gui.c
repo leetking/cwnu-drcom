@@ -12,10 +12,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#ifdef WINDOWS
-# include <pcap.h>
-#endif
-
 #define DRCOM_TITLE     "drcom"
 #define MENU_TEXT_MAX   48
 #define NO_SUBMENU      ((void*)1)
@@ -137,12 +133,8 @@ static void choose_if_cbk(GtkWidget *widget, gpointer father)
         return;
     }
     for (int i = 0; i < ifs_max; ++i) {
-#ifdef LINUX
         _D("ifs[%d].name: %s\n", i, ifs[i].name);
         add_to_linearstore(list, ifs[i].name);
-#elif defined(WINDOWS)
-        add_to_linearstore(list, ifs[i].desc);
-#endif
     }
     gint result = gtk_dialog_run(GTK_DIALOG(dialog));
     if (result == GTK_RESPONSE_OK || result == GTK_RESPONSE_ACCEPT)
@@ -476,13 +468,7 @@ static int try_smart_login(char const *username, char const *password)
     int ifs_max = IFS_MAX;
     if (0 >= getall_ifs(ifs, &ifs_max)) return -1;
     for (int i = 0; i < ifs_max; ++i) {
-        _M("%d. try interface (%s) to login\n", i,
-#ifdef LINUX
-                ifs[i].name
-#elif defined(WINDOWS)
-                ifs[i].desc
-#endif
-          );
+        _M("%d. try interface (%s) to login\n", i, ifs[i].name);
         setifname(ifs[i].name);
         if (0 == eaplogin(username, password))
             return 0;

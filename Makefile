@@ -1,19 +1,19 @@
 # **编译选项在这里修改**
-#TARGET只可以取WIN, LINUX, OPENWRT几个选项
-#WIN 为windows程序编译
-#LINUX 为*nix系列系统编译
-#OPENWRT 专为openwrt路由器系统编译，并且会生成ipk安装包, NOTE 选择OPENWRT时，需要确定MIPS的大小端
+# TARGET 只可以取LINUX, OPENWRT两个选项
+# LINUX 为*nix系列系统编译
+# OPENWRT 专为 openwrt 路由器系统编译，并且会生成 ipk 安装包, NOTE 选择 OPENWRT 时，
+# 需要确定 MIPS 的大小端
 TARGET := LINUX
-#只有当TARGET为OPENWRT才定义MIPS，默认为MSB
-#大端: MSB; 小端: LSB
+# 只有当T ARGET 为 OPENWRT 才定义MIPS，默认为 MSB
+# 大端: MSB; 小端: LSB
 MIPS := MSB
-#下面是高级选项
-#如果是, 就取DEBUG，否则就是空
+# 下面是高级选项
+# 如果是, 就取 DEBUG，否则就是空
 IS_DEBUG :=
-#如果是, 就取GUI，否则就是空
+# 如果是, 就取 GUI，否则就是空
 IS_GUI :=
-#交叉编译，在TARGET选为OPENWRT并且制定MIPS时会自动确定CROSS的值
-#e.g. CROSS := mips-openwrt-linux-
+# 交叉编译，在 TARGET 选为 OPENWRT 并且制定 MIPS 时会自动确定 CROSS 的值
+# e.g. CROSS := mips-openwrt-linux-
 CROSS :=
 # **编译选项到此**
 
@@ -27,76 +27,60 @@ CC := gcc
 VERSION := 0.0.4.1
 CONFIG	 := ./drcomrc
 ifneq "$(IS_GUI)" ""
-	RES := resource
-	ICON_PATH := $(RES)/icon.png
+    RES := resource
+    ICON_PATH := $(RES)/icon.png
 endif #IS_GUI == ""
-ifeq ($(TARGET), WIN)
-	VERSION := $(VERSION)-win
-else
+
 ifeq ($(TARGET), OPENWRT)
-ifeq ($(MIPS), MSB)
-	CROSS := mips-openwrt-linux-
-	VERSION := $(VERSION)-openwrt-msb
+    ifeq ($(MIPS), MSB)
+        CROSS := mips-openwrt-linux-
+        VERSION := $(VERSION)-openwrt-msb
+    else
+        CROSS := mipsel-openwrt-linux-
+        VERSION := $(VERSION)-openwrt-lsb
+    endif #MIPS == MSB
 else
-	CROSS := mipsel-openwrt-linux-
-	VERSION := $(VERSION)-openwrt-lsb
-endif #MIPS == MSB
-else
-	VERSION := $(VERSION)-linux-amd64
+    VERSION := $(VERSION)-linux-amd64
 endif #CC == gcc
-endif #TARGET == WIN
+
 CC := $(CROSS)$(CC)
 APP := Drcom4CWNU-$(VERSION)
 
-CFLAGS_WIN	:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
-LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
 CFLAGS_GUI	:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=\"$(ICON_PATH)\" -DGUI
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
 CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
 LDFLAGS_DEBUG	:=
 CFLAGS_RELEASE	:= -O2 -W -g
 
-OBJS	:= md5.o config.o common.o
+OBJS	:= md5.o config.o common.o eapol.o drcom.o
 CFLAGS	:= -DCONF_PATH=\"$(CONFIG)\" -DVERSION=\"$(VERSION)\" -std=gnu99
 LDFLAGS :=
 
 ifeq ($(findstring gcc, $(CC)), gcc)
 ifeq ($(TARGET), LINUX)
-	CFLAGS_DEBUG += -pg
-	LDFLAGS_DEBUG += -pg
+    CFLAGS_DEBUG += -pg
+    LDFLAGS_DEBUG += -pg
 endif
 endif
 
-ifeq ($(TARGET), WIN)
-	CFLAGS += $(CFLAGS_WIN)
-	LDFLAGS += $(LDFLAGSS_WIN)
-	OBJS += eapol_win.o
-	WIN_DLLS := win_dlls
-ifeq "$(IS_GUI)" ""
-	LDFLAGSS_GUI += -mwindows
-endif #IS_GUI
-else
 ifeq ($(TARGET), OPENWRT)
-	IPK := ipk
-endif #TARGET == OPENWRT
-	CFLAGS += -DLINUX
-	INSTALL := install
-	OBJS += eapol.o drcom.o
+    IPK := ipk
 endif
+
 
 ifeq ($(IS_DEBUG), DEBUG)
-	CFLAGS += $(CFLAGS_DEBUG)
-	LDFLAGS += $(LDFLAGS_DEBUG)
+    CFLAGS += $(CFLAGS_DEBUG)
+    LDFLAGS += $(LDFLAGS_DEBUG)
 else
-	CFLAGS += $(CFLAGS_RELEASE)
+    CFLAGS += $(CFLAGS_RELEASE)
 endif
 
 ifeq ($(IS_GUI), GUI)
-	CFLAGS += $(CFLAGS_GUI)
-	LDFLAGS += $(LDFLAGSS_GUI)
-	OBJS += main_gui.o gui.o
+    CFLAGS += $(CFLAGS_GUI)
+    LDFLAGS += $(LDFLAGSS_GUI)
+    OBJS += main_gui.o gui.o
 else
-	OBJS += main_cli.o wrap_eapol.o dhcp.o
+    OBJS += main_cli.o wrap_eapol.o dhcp.o
 endif
 
 all: drcom $(IPK)
@@ -119,23 +103,21 @@ tar: *.c *.h drcomrc.example Makefile $(RES)
 release: all drcomrc.example $(RES) $(WIN_DLLS) $(APP)
 	$(CP) drcom drcomrc.example $(APP)
 	zip -r $(APP).zip $(APP)
+
 $(APP):
 	if [ ! -e $(APP) ]; then \
 		$(MKDIR) $(APP); \
 	fi
+
 $(RES): $(APP)
 	$(CP) $(RES) $(APP)
-$(WIN_DLLS): $(APP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt
-	dlls= `ldd drcom | grep -E '/mingw32|/usr|/lib' | awk '{print $$3}' | sort | uniq`
-	if [ ${dlls} ]; then \
-		$(CP) -L ${dlls} $(APP); \
-	fi
-	$(CP) winpcap.exe scripts/drcom-login.bat docs/HOW-TO-USE.txt $(APP)
-$(INSTALL): drcom
+
+install: drcom
 	if [ ! -e dist ]; then \
 		$(MKDIR) dist; \
 	fi
 	$(CP) drcom drcomrc.example dist
+
 $(IPK): drcom random_mac
 	$(MKDIR) ./usr/lib/lua/luci/controller/
 	$(MKDIR) ./usr/lib/lua/luci/model/cbi/
@@ -172,6 +154,7 @@ $(IPK): drcom random_mac
 	#cat $(APP) | gzip -c > $(APP).ipk
 	$(RM) ./usr ./etc ./overlay ./data.tar.gz ./debian-binary ./control.tar.gz ./control
 	$(RM) $(APP)
+
 random_mac: openwrt/random_mac.c
 	$(CC) -o $@ $^ $(CFLAGS)
 
@@ -185,12 +168,14 @@ help:
 	@echo "     install: install soft to current 'dist' folder. NOTE: just for linux!"
 	@echo "set VARIABLE"
 	@echo "$$ make TARGET=target IS_GUI=gui"
-	@echo "     target: LINUX or WINDOWS"
+	@echo "     target: LINUX or OPENWRT"
 	@echo "     gui: GUI or empty(don't type it. e.g. 'IS_GUI=')"
 
 clean:
 	$(RM) *.o netif-config.exe netif-config drcom dist gmon.out random_mac
+
 distclean: clean
 	$(RM) cscope.* tags dist
 	$(RM) $(APP)* *.ipk
+
 .PHONY: clean all tar distclean release help install ipk

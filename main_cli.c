@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <limits.h>
+
 #include "eapol.h"
 #include "config.h"
 #include "wrap_eapol.h"
@@ -11,12 +12,12 @@
 #include "dhcp.h"
 
 /*
- * 读取配置文件，路径在CONF_PATH里，默认在当前目录下
+ * 读取配置文件，路径在 CONF_PATH 里，默认在当前目录下
  * @return: 0: 成功
  *          -1: 没有配置文件
  *          -2: 配置文件格式错误
  */
-static int getconf(char *uname, char *pwd);
+static int getconf(char *username, char *password);
 static void help(int argc, char **argv);
 
 int main(int argc, char **argv)
@@ -26,10 +27,6 @@ int main(int argc, char **argv)
     char ifname[IF_NAMESIZE];
 
     char islogoff = 0;
-#ifdef WINDOWS
-    char iskpalv = 0;
-    char kpalv_if[IF_NAMESIZE];
-#endif
 
     int i;
     for (i = 1; i < argc; ++i) {
@@ -64,41 +61,12 @@ int main(int argc, char **argv)
                 _M("WARN: Redirect `stdout` error!\n");
             }
         }
-#ifdef WINDOWS
-        if (0 == strcmp("-k", argv[i])) {
-            /*
-             * -k选项让这个程序作为心跳程序运行。
-             * -k ifname
-             * e.g. -k \Device\NPF_{AEDD3BFA-33D3-4B29-B1FC-0B82C65E42D3}
-             * 对于外部使用这个命令行，不能让他们知道，
-             * 这个只有在windows下才有效
-             */
-            if (NULL == argv[i+1])
-                goto _cant_eap_daemon;
-            strncpy(kpalv_if, argv[i+1], IF_NAMESIZE);
-            _D("kpalv_if: %s\n", kpalv_if);
-            iskpalv = 1;
-        }
-#endif
     }
 
     if (0 != getconf(username, password)) {
         _M("Not configure.\n");
         return 1;
     }
-
-#ifdef WINDOWS
-    /* windows下作为心跳进程运行的代码 */
-    if (iskpalv) {
-        if (0 != eap_daemon(kpalv_if)) {
-            /* 异常退出 */
-            _M("[EAP:ERROR] Create daemon process to keep alive error!\n");
-            return 1;
-        }
-        /* 正常退出 */
-        return 0;
-    }
-#endif
 
     if (islogoff) {
         try_smart_logoff();
@@ -151,11 +119,11 @@ int main(int argc, char **argv)
     return 0;
 }
 
-static int getconf(char *_uname, char *_pwd)
+static int getconf(char *username_, char *password_)
 {
-    char uname[MAX(RECORD_LEN, USERNAME_LEN)];
-    char pwd[MAX(RECORD_LEN, PASSWORD_LEN)];
-    char configpath[PATH_MAX+sizeof(CONF_PATH)];
+    char username[MAX(RECORD_LEN, USERNAME_LEN+1)];
+    char password[MAX(RECORD_LEN, PASSWORD_LEN+1)];
+    char configpath[PATH_MAX];
     if (getexedir(configpath)) return -1;
     strcat(configpath, CONF_PATH);
     _D("configfile path: %s\n", configpath);
@@ -164,12 +132,12 @@ static int getconf(char *_uname, char *_pwd)
         perror("drcomrc");
         return -1;
     }
-    if (0 != getvalue(conf, "uname", uname)) return -2;
-    if (0 != getvalue(conf, "pwd", pwd)) return -2;
-    strncpy(_uname, uname, USERNAME_LEN+1);
-    strncpy(_pwd, pwd, PASSWORD_LEN+1);
-    _D("uname: %s\n", _uname);
-    _D("pwd: %s\n", _pwd);
+    if (0 != getvalue(conf, "username", username)) return -2;
+    if (0 != getvalue(conf, "password", password)) return -2;
+    strncpy(username_, username, USERNAME_LEN+1);
+    strncpy(password_, password, PASSWORD_LEN+1);
+    _D("username: %s\n", username_);
+    _D("password: %s\n", password_);
     fclose(conf);
 
     return 0;

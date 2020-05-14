@@ -151,7 +151,7 @@ extern int drcom_setifname(char const *ifname);
  *          3: 服务器拒绝通讯
  *         -1: 没找到服务器，也许网络不通，也许本网络没有这个服务器
  */
-extern int drcom_login(char const *usr, char const *pwd);
+extern int drcom_login(char const *usr, char const *password);
 
 /**
  * drcom认证断线

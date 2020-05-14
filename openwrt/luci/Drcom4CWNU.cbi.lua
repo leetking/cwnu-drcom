@@ -24,9 +24,9 @@ s = m:section(TypedSection, ETC_CONFIG_SECTION, "")
 s.addremove = false --不允许添加NamedSection
 s.anonymous = true  --匿名显示这个(setting)NamedSection
 
-uname = s:option(Value, "uname", translate("学号"))
-pwd = s:option(Value, "pwd", translate("密码"))
-pwd.password = true
+username = s:option(Value, "username", translate("学号"))
+password = s:option(Value, "password", translate("密码"))
+password.password = true
 -- 把wifi配置移到这里来吧，简化本校他们的操作
 wifissid = s:option(Value, "wifissid", translate("WIFI名字"))
 wifipwd  = s:option(Value, "wifipwd", translate("WIFI密码"))

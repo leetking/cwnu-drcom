@@ -16,13 +16,7 @@ extern int try_smart_login(char const *username, char const *password)
     if (0 >= getall_ifs(ifs, &ifs_max)) return -3;
     int i;
     for (i = 0; i < ifs_max; ++i) {
-        _M("%d. try interface (%s) to login...\n", i,
-#ifdef LINUX
-                ifs[i].name
-#elif defined(WINDOWS)
-                ifs[i].desc
-#endif
-          );
+        _M("%d. try interface (%s) to login...\n", i, ifs[i].name);
         setifname(ifs[i].name);
         int state;
         switch (state = eaplogin(username, password)) {
@@ -55,13 +49,7 @@ extern void try_smart_logoff(void)
     if (0 >= getall_ifs(ifs, &ifs_max)) return;
     int i;
     for (i = 0; i < ifs_max; ++i) {
-        _M("%d. try interface (%s) to logoff...\n", i,
-#ifdef LINUX
-                ifs[i].name
-#elif defined(WINDOWS)
-                ifs[i].desc
-#endif
-          );
+        _M("%d. try interface (%s) to logoff...\n", i, ifs[i].name);
         setifname(ifs[i].name);
         eaplogoff();
     }

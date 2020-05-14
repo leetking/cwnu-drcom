@@ -11,7 +11,7 @@
  * 尝试所有网卡进行登录，直到一个可正常使用网卡。
  * 并且在环境变量(DRCOM_IFNAME)里记录此次使用的网卡
  */
-extern int try_smart_login(char const *uname, char const *pwd);
+extern int try_smart_login(char const *username, char const *password);
 /*
  * 自动选择网卡离线
  * 优先从环境变量(DRCOM_IFNAME)里选择出网卡进行尝试，

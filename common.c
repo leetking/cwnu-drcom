@@ -5,32 +5,22 @@
 #include <errno.h>
 #include <time.h>
 
-#ifdef LINUX
-# include <unistd.h>
-# include <arpa/inet.h>
-# include <net/ethernet.h>
-# include <sys/select.h>
-# include <net/if_arp.h>
-# include <net/if.h>
-# include <sys/ioctl.h>
-# include <netpacket/packet.h>
-# define PATH_SEP   '/'
-#elif defined(WINDOWS)
-# include <windows.h>
-# include <pcap.h>
-# define PATH_SEP   '\\'
-#endif
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <net/ethernet.h>
+#include <sys/select.h>
+#include <net/if_arp.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <netpacket/packet.h>
 
 #include "common.h"
 
+#define PATH_SEP   '/'
 
 extern int getexedir(char *exedir)
 {
-#ifdef LINUX
     int cnt = readlink("/proc/self/exe", exedir, PATH_MAX);
-#elif defined(WINDOWS)
-    int cnt = GetModuleFileName(NULL, exedir, PATH_MAX);
-#endif
     if (cnt < 0 || cnt > PATH_MAX)
         return -1;
     _D("exedir: %s\n", exedir);
@@ -64,7 +54,6 @@ static int is_filtered(char const *ifname)
 }
 
 
-#ifdef LINUX
 static char *get_ifname_from_buff(char *buff)
 {
     char *s;
@@ -76,7 +65,6 @@ static char *get_ifname_from_buff(char *buff)
     *buff = '\0';
     return s;
 }
-#endif /* LINUX */
 
 
 /**
@@ -94,17 +82,16 @@ extern int getall_ifs(ifname_t *ifs, int *cnt)
     int i = 0;
     if (!ifs || *cnt <= 0) return -2;
 
-#ifdef LINUX    /* linux (unix osx?) */
-#define _PATH_PROCNET_DEV "/proc/net/dev"
+#define NETDEV_PATH     "/proc/net/dev"
 #define BUFF_LINE_MAX   1024
     char buff[BUFF_LINE_MAX];
-    FILE *fd = fopen(_PATH_PROCNET_DEV, "r");
+    FILE *fd = fopen(NETDEV_PATH, "r");
     char *name;
     if (NULL == fd) {
-        perror("fopen");
+        perror(NETDEV_PATH);
         return -1;
     }
-    /* _PATH_PROCNET_DEV文件格式如下,...表示后面我们不关心
+    /* NETDEV_PATH 文件格式如下,...表示后面我们不关心
      * Inter-|   Receive ...
      * face |bytes    packets ...
      * eth0: 147125283  119599 ...
@@ -131,28 +118,8 @@ extern int getall_ifs(ifname_t *ifs, int *cnt)
         }
     }
     fclose(fd);
-
-#elif defined(WINDOWS)
-    pcap_if_t *alldevs;
-    char errbuf[PCAP_ERRBUF_SIZE];
-    if (-1 == pcap_findalldevs(&alldevs, errbuf)) {
-        _M("Get interfaces handler error: %s\n", errbuf);
-        return -1;
-    }
-    for (pcap_if_t *d = alldevs; d; d = d->next) {
-        if (is_filter(d->description)) {
-            _D("filtered %s.\n", d->description);
-            continue;
-        }
-        if (i >= *cnt) return -2;
-        strncpy(ifs[i].name, d->name, IF_NAMESIZE);
-        strncpy(ifs[i].desc, d->description, IFDESCSIZ);
-        ++i;
-    }
-    pcap_freealldevs(alldevs);
-#endif
-
     *cnt = i;
+
     return i;
 }
 
@@ -290,7 +257,6 @@ extern void format_data(u8 const *d, size_t len)
 }
 
 
-#ifdef LINUX
 /**
  * 返回t1-t0的时间差
  * 由于这里精度没必要达到ns，故返回相差微秒ms
@@ -332,5 +298,3 @@ extern void msleep(long ms)
     tv.tv_usec = ms%1000*1000;
     select(0, 0, 0, 0, &tv);
 }
-
-#endif /* LINUX */

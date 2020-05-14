@@ -90,8 +90,8 @@ typedef union {
 
 /**
  * eap认证
- * uname: 用户名
- * pwd: 密码
+ * username: 用户名
+ * password: 密码
  * @return: 0: 成功
  *          1: 用户不存在
  *          2: 密码错误
@@ -100,7 +100,7 @@ typedef union {
  *          -1: 没有找到合适网络接口
  *          -2: 没有找到服务器
  */
-extern int eaplogin(char const *uname, char const *pwd);
+extern int eaplogin(char const *username, char const *password);
 
 /**
  * eap下线
@@ -110,22 +110,12 @@ extern int eaplogoff(void);
 /**
  * eap重新登录
  */
-extern int eaprefresh(char const *uname, char const *pwd);
+extern int eaprefresh(char const *username, char const *password);
 
 /**
  * 用来设置ifname
  */
 extern void setifname(char *ifname);
-
-#ifdef WINDOWS
-/**
- * 由于windows下实现进程的特殊性，这里把eap_daemon导出给main_cli使用
- * ifname: 心跳的物理接口名字
- * @return: 0: keep alive 进程正常退出，也许并不需要心跳进程
- *         !0: 错误原因导致keep alive 进程退出，也许是没法创建进程
- */
-extern int eap_daemon(char const *ifname);
-#endif /* WINDOWS */
 
 #undef IDEN_LEN
 

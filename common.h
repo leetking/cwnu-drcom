@@ -3,20 +3,10 @@
 
 #include <stdint.h>
 
-#ifdef LINUX
-# include <linux/limits.h>
-# include <netinet/if_ether.h>
-# include <arpa/inet.h>
-# include <net/if.h>
-#elif defined(WINDOWS)
-# include <stdlib.h>    /* for _MAX_PATH on Windows */
-# include <windows.h>
-# define ETH_ALEN       6
-# define IF_NAMESIZE    128
-# define IF_DESCSIZE    128
-# define MTU_MAX        65536
-# define MAX_PATH       _MAX_PATH
-#endif
+#include <linux/limits.h>
+#include <netinet/if_ether.h>
+#include <arpa/inet.h>
+#include <net/if.h>
 
 typedef uint8_t u8;     /* 一个字节 */
 typedef uint16_t u16;   /* 两个字节 */
@@ -24,9 +14,6 @@ typedef uint32_t u32;   /* 四个字节 */
 
 typedef struct {
     char name[IF_NAMESIZE]; /* linux下是eth0, windows采用的是注册表类似的(\Device\NPF_{xxxx-xxx-xx-xx-xxx}) */
-#ifdef WINDOWS
-    char desc[IF_DESCSIZE];   /* windows下描述(AMD PCNET Family PCI Ethernet Adapter) */
-#endif
 } ifname_t;
 
 

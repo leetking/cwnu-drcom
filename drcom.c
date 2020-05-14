@@ -54,10 +54,10 @@ static int drcom_daemon(void);
 static int drcom_keepalive(void);
 static int drcom_init(void);
 /* 一系列过滤函数 */
-static int filter_is_702(u8 const *buf, size_t len);
-static int filter_is_704(u8 const *buf, size_t len);
-static int filter_is_70b1(u8 const *buf, size_t len);
-static int filter_is_70b3(u8 const *buf, size_t len);
+static int is_702_packet(u8 const *buf, size_t len);
+static int is_704_packet(u8 const *buf, size_t len);
+static int is_70b1_packet(u8 const *buf, size_t len);
+static int is_70b3_packet(u8 const *buf, size_t len);
 
 /**
  * 设定用于登录的接口
@@ -83,9 +83,9 @@ extern int drcom_setserip(char const *_ip)
 /**
  * 登录
  */
-extern int drcom_login(char const *usr, char const *pwd)
+extern int drcom_login(char const *usr, char const *password)
 {
-    (void)pwd;      /* repress warn */
+    (void)password;      /* repress warn */
     int ret = 0;
 
     u8 sendbuf[BUFFER_LEN];
@@ -129,7 +129,7 @@ extern int drcom_login(char const *usr, char const *pwd)
             break;
 
         case 0x701:
-            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, filter_is_702);
+            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, is_702_packet);
             if (rdlen <= 0) {
                 ++get701cnt;
                 state = 1;
@@ -178,7 +178,7 @@ extern int drcom_login(char const *usr, char const *pwd)
             break;
 
         case 0x703:
-            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, filter_is_704);
+            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, is_704_packet);
             if (rdlen <= 0) {
                 state = 0x702;
                 ++get704cnt;
@@ -495,7 +495,7 @@ _keepalv_redirect_out_error:
             break;
 
         case 0x70b1:
-            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, filter_is_70b1);
+            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, is_70b1_packet);
             if (rdlen > 0) {
                 _DUMP(recvbuf, rdlen);
                 _D("[drcom:kpalv] get sercnt: %0X\n", recvdr->drcom_nrml_kpsercnt);
@@ -533,7 +533,7 @@ _keepalv_redirect_out_error:
             break;
 
         case 0x70b3:
-            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, filter_is_70b3);
+            rdlen = recvfilter(recvbuf, BUFFER_LEN, GENERAL_TIMEOUT, is_70b3_packet);
             if (rdlen > 0) {
                 _DUMP(recvbuf, rdlen);
                 /* TODO 修改为其他公寓的模式 */
@@ -644,7 +644,7 @@ static int recvfilter(u8 *buf, size_t len, int timeout, filter_t filter)
 }
 
 
-static int filter_is_702(u8 const *buf, size_t len)
+static int is_702_packet(u8 const *buf, size_t len)
 {
     (void)len;
     drcom_t *p = (drcom_t*)buf;
@@ -655,7 +655,7 @@ static int filter_is_702(u8 const *buf, size_t len)
 }
 
 
-static int filter_is_704(u8 const *buf, size_t len)
+static int is_704_packet(u8 const *buf, size_t len)
 {
     (void)len;
     drcom_t *p = (drcom_t*)buf;
@@ -666,7 +666,7 @@ static int filter_is_704(u8 const *buf, size_t len)
 }
 
 
-static int filter_is_70b1(u8 const *buf, size_t len)
+static int is_70b1_packet(u8 const *buf, size_t len)
 {
     (void)len;
     drcom_t *p = (drcom_t*)buf;
@@ -680,7 +680,7 @@ static int filter_is_70b1(u8 const *buf, size_t len)
 }
 
 
-static int filter_is_70b3(u8 const *buf, size_t len)
+static int is_70b3_packet(u8 const *buf, size_t len)
 {
     (void)len;
     drcom_t *p = (drcom_t*)buf;

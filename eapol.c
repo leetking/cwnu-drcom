@@ -365,8 +365,8 @@ static int eap_daemon(int skfd, struct sockaddr_ll const *skaddr)
 
 /**
  * eap认证
- * uname: 用户名
- * pwd: 密码
+ * username: 用户名
+ * password: 密码
  * @return: 0: 成功
  *          1: 用户不存在
  *          2: 密码错误
@@ -375,17 +375,17 @@ static int eap_daemon(int skfd, struct sockaddr_ll const *skaddr)
  *          -1: 没有找到合适网络接口
  *          -2: 没有找到服务器
  */
-int eaplogin(char const *uname, char const *pwd)
+int eaplogin(char const *username_, char const *password_)
 {
     int i;
     int state;
     int skfd;
     struct sockaddr_ll ll;
 
-    _M("Use user '%s' to login...\n", uname);
+    _M("Use user '%s' to login...\n", username_);
     _M("[EAP:0] Initilize interface...\n");
-    strncpy(username, uname, USERNAME_LEN+1);
-    strncpy(password, pwd, PASSWORD_LEN+1);
+    strncpy(username, username_, USERNAME_LEN+1);
+    strncpy(password, password_, PASSWORD_LEN+1);
     password_len = strlen(password);
     if (0 != eapol_init(&skfd, &ll))
         return -1;
@@ -444,7 +444,7 @@ timeout:
     close(skfd);
     return -2;
 no_such_user:
-    _M("[EAP:ERROR] No this user(%s).\n", uname);
+    _M("[EAP:ERROR] No this user(%s).\n", username_);
     close(skfd);
     return 1;
 incorrect_password:
@@ -479,9 +479,9 @@ int eaplogoff(void)
 }
 
 
-int eaprefresh(char const *uname, char const *pwd)
+int eaprefresh(char const *username, char const *password)
 {
-    return eaplogin(uname, pwd);
+    return eaplogin(username, password);
 }
 
 

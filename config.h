@@ -1,11 +1,11 @@
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#ifndef CONFIG_H__
+#define CONFIG_H__
 /*
  * 一个简单的配置文件解析函数
  */
 #include <stdio.h>
 
-#define RECORD_LEN	(216)
+#define RECORD_LEN      216
 
 /*
  * 读取配置文件里的值
@@ -18,9 +18,9 @@
  *
  * [配置文件样例],以网络配置为例
  * # 这是注释
- * ethif = "eth0"			#网络接口
- * uname = "201473740838"	#用户名
- * pwd = "pwd"				#密码
+ * ethif = "eth0"                       #网络接口
+ * uname = "201473740838"       #用户名
+ * pwd = "pwd"                          #密码
  * [注意]
  * key必须是符合c标识符格式的字符串, value值全部用"包含
  */

@@ -17,9 +17,9 @@
 
 #define BUFF_LEN	(1024)
 
-static uchar client_mac[ETH_ALEN];
+static u8 client_mac[ETH_ALEN];
 
-static uchar sendbuff[BUFF_LEN];
+static u8 sendbuff[BUFF_LEN];
 static char ifname[IF_NAMESIZE] = "\\Device\\NPF_{AEDD3BFA-33D3-4B29-B1FC-0B82C65E42D3}";
 static ethII_t *sendethii, *recvethii;
 static eapol_t *sendeapol, *recveapol;
@@ -29,9 +29,9 @@ static eapbody_t *sendeapbody, *recveapbody;
 #define FORMAT_RECVPKT(pkt)	\
     do{ \
         recvethii = (ethII_t*)(pkt); \
-        recveapol = (eapol_t*)((uchar*)recvethii+sizeof(ethII_t)); \
-        recveap = (eap_t*)((uchar*)recveapol+sizeof(eapol_t)); \
-        recveapbody = (eapbody_t*)((uchar*)recveap+sizeof(eap_t)); \
+        recveapol = (eapol_t*)((u8*)recvethii+sizeof(ethII_t)); \
+        recveap = (eap_t*)((u8*)recveapol+sizeof(eapol_t)); \
+        recveapbody = (eapbody_t*)((u8*)recveap+sizeof(eap_t)); \
     }while(0)
 
 static char _uname[UNAME_LEN];
@@ -62,9 +62,9 @@ static int eapol_init(pcap_t **skfd)
     char ifbuff[8+IF_NAMESIZE] = "rpcap://";
 
     sendethii = (ethII_t*)sendbuff;
-    sendeapol = (eapol_t*)((uchar*)sendethii+sizeof(ethII_t));
-    sendeap = (eap_t*)((uchar*)sendeapol+sizeof(eapol_t));
-    sendeapbody = (eapbody_t*)((uchar*)sendeap+sizeof(eap_t));
+    sendeapol = (eapol_t*)((u8*)sendethii+sizeof(ethII_t));
+    sendeap = (eap_t*)((u8*)sendeapol+sizeof(eapol_t));
+    sendeapbody = (eapbody_t*)((u8*)sendeap+sizeof(eap_t));
 
     if (-1 == pcap_findalldevs(&alldevs, errbuf)) {
         _M("Get interface: %s\n", errbuf);
@@ -120,7 +120,7 @@ static int filte_req_identity(pcap_t *skfd)
 {
     int stime = time((time_t*)NULL);
     struct pcap_pkthdr *pkt_hd;
-    const uchar *recvbuff;
+    const u8 *recvbuff;
     int timeout;
 
     for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
@@ -148,7 +148,7 @@ static int filte_req_md5clg(pcap_t *skfd)
 {
     int stime = time((time_t*)NULL);
     struct pcap_pkthdr *pkt_hd;
-    const uchar *recvbuff;
+    const u8 *recvbuff;
     int timeout;
     for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
         timeout = pcap_next_ex(skfd, &pkt_hd, &recvbuff);
@@ -191,7 +191,7 @@ static int filte_success(pcap_t *skfd)
 {
     int stime = time((time_t*)NULL);
     struct pcap_pkthdr *pkt_hd;
-    const uchar *recvbuff;
+    const u8 *recvbuff;
     int timeout;
     for (; time((time_t*)NULL)-stime <= TIMEOUT;) {
         timeout = pcap_next_ex(skfd, &pkt_hd, &recvbuff);
@@ -220,7 +220,7 @@ static int filte_success(pcap_t *skfd)
 static int eapol_start(pcap_t *skfd)
 {
     /* 这里采用eap标记的组播mac地址，也许采用广播也可以吧 */
-    uchar broadcast_mac[ETH_ALEN] = {
+    u8 broadcast_mac[ETH_ALEN] = {
         //0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
@@ -236,7 +236,7 @@ static int eapol_start(pcap_t *skfd)
 /* 退出登录 */
 static int eapol_logoff(pcap_t *skfd)
 {
-    uchar broadcast_mac[ETH_ALEN] = {
+    u8 broadcast_mac[ETH_ALEN] = {
         //0x01, 0x80, 0xc2, 0x00, 0x00, 0x03,
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
@@ -267,7 +267,7 @@ static int eap_res_identity(pcap_t *skfd)
 /* 回应md5clg */
 static int eap_md5_clg(pcap_t *skfd)
 {
-    uchar md5buff[BUFF_LEN];
+    u8 md5buff[BUFF_LEN];
     sendeap->id = recveap->id;
     sendeap->len = htons(sizeof(eapbody_t));
     sendeap->type = EAP_TYPE_MD5;

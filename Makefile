@@ -48,13 +48,13 @@ endif #TARGET == WIN
 CC := $(CROSS)$(CC)
 APP := Drcom4CWNU-$(VERSION)
 
-CFLAGS_WIN		:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
+CFLAGS_WIN	:= -I wpcap/include -DWINDOWS -DHAVE_REMOTE
 LDFLAGSS_WIN	:= -lws2_32 -L wpcap/lib -lwpcap -lpacket
-CFLAGS_GUI		:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=\"$(ICON_PATH)\" -DGUI
+CFLAGS_GUI	:= `pkg-config --cflags gtk+-2.0` -DICON_PATH=\"$(ICON_PATH)\" -DGUI
 LDFLAGSS_GUI	:= `pkg-config --libs gtk+-2.0`
 CFLAGS_DEBUG	:= -DDEBUG -g -O0 -Wall -Wno-unused
 LDFLAGS_DEBUG	:=
-CFLAGS_RELEASE	:= -O2 -W -Wall
+CFLAGS_RELEASE	:= -O2 -W -g
 
 OBJS	:= md5.o config.o common.o
 CFLAGS	:= -DCONF_PATH=\"$(CONFIG)\" -DVERSION=\"$(VERSION)\" -std=gnu99
@@ -176,12 +176,12 @@ random_mac: openwrt/random_mac.c
 	$(CC) -o $@ $^ $(CFLAGS)
 
 help:
-	@echo "make help|all|release|tar|dist-clean"
+	@echo "make help|all|release|tar|distclean"
 	@echo "     help: Show this page."
 	@echo "     all: Build all src."
 	@echo "     release: Build all src and tar executable binary program & resource files."
 	@echo "     tar: tar src files & resource files."
-	@echo "     dist-clean: clean all exclude original file such as src & 'Makefile'."
+	@echo "     distclean: clean all exclude original file such as src & 'Makefile'."
 	@echo "     install: install soft to current 'dist' folder. NOTE: just for linux!"
 	@echo "set VARIABLE"
 	@echo "$$ make TARGET=target IS_GUI=gui"
@@ -190,7 +190,7 @@ help:
 
 clean:
 	$(RM) *.o netif-config.exe netif-config drcom dist gmon.out random_mac
-dist-clean: clean
+distclean: clean
 	$(RM) cscope.* tags dist
 	$(RM) $(APP)* *.ipk
-.PHONY: clean all tar dist-clean release help install ipk
+.PHONY: clean all tar distclean release help install ipk
